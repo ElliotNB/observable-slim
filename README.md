@@ -17,16 +17,21 @@ understood as possible. Minifies down to roughly 500 characters.
 
 ```javascript
 var test = {};
-var p = ObservableSlim.create(test);
-
-ObservableSlim.observe(p, function(target, property, value, path) {
+var p = ObservableSlim.create(test, function(target, property, value, path) {
 	console.log("Change on '"+path+"', new value: " + JSON.stringify(value));
 });
 
-p.hello = "world";  		// change on 'hello', new value: "world"
-p.testing = {}; 			// change on 'testing', new value: {}
-p.testing.blah = 42;		// change on 'testing.blah', new value: 42
-p.arr = [];					// change on 'testing.arr', new value: []
-p.arr.push("hello world");	// change on 'testing.arr.0', new value: "hello world"
+p.hello = "world";  		// Change on 'hello', new value: "world"
+p.testing = {}; 			// Change on 'testing', new value: {}
+p.testing.blah = 42;		// Change on 'testing.blah', new value: 42
+p.arr = [];					// Change on 'testing.arr', new value: []
+p.arr.push("hello world");	// Change on 'testing.arr.0', new value: "hello world"
 console.log(test)			// {"hello":"world","testing":{"blah":42},"arr":["hello world"]}
+```
+
+If you wish to add a second observer function to the same object, you may do so as follows:
+```
+ObservableSlim.observe(p, function(target, property, value, path) {
+	console.log("Second function. Change on '"+path+"', new value: " + JSON.stringify(value));
+});
 ```
