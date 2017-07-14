@@ -30,7 +30,7 @@ console.log(test)			// {"hello":"world","testing":{"blah":42},"arr":["hello worl
 ```
 
 If you wish to add a second observer function to the same object, you may do so as follows:
-```
+```javascript
 ObservableSlim.observe(p, function(target, property, value, path) {
 	console.log("Second function. Change on '"+path+"', new value: " + JSON.stringify(value));
 });

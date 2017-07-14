@@ -60,7 +60,7 @@ var ObservableSlim = (function() {
 				// the target object and any objects nested within.
 				if (typeof target[property] === "object" && target[property] !== null) {
 					var newPath = (path !== "") ? (path + "." + property) : property;
-					return _create(target[property], observable, handler, newPath);
+					return _create(target[property], observable, newPath);
 				} else {
 					return target[property];
 				}
@@ -70,8 +70,12 @@ var ObservableSlim = (function() {
 				if (target[property] !== value) {
 				
 					// record the current path of the object property being modified
-					var currentPath = (path !== "") ? (path + "." + property) : property;
-					
+					if (target instanceof Array) {
+						var currentPath = (path !== "") ? (path + "[" + property + "]") : property;
+					} else {
+						var currentPath = (path !== "") ? (path + "." + property) : property;
+					}
+
 					// store the change that just occurred
 					changes.push({"target":target,"property":property,"value":value,"currentPath":currentPath});
 					
