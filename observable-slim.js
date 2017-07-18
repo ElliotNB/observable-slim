@@ -65,19 +65,20 @@ var ObservableSlim = (function() {
 					return target[property];
 				}
 			},
-			set: function(target, property, value) {
+			set: function(target, property, value, receiver) {
+
 				// only record a change if the new value differs from the old one
 				if (target[property] !== value) {
 				
 					// record the current path of the object property being modified
 					if (target instanceof Array) {
-						var currentPath = (path !== "") ? (path + "[" + property + "]") : property;
+						var currentPath = (path !== "") ? (path) : property;
 					} else {
 						var currentPath = (path !== "") ? (path + "." + property) : property;
 					}
 
 					// store the change that just occurred
-					changes.push({"target":target,"property":property,"value":value,"currentPath":currentPath});
+					changes.push({"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath});
 					
 					// invoke any functions that are observing changes
 					for (var i = 0; i < observable.observers.length; i++) {
@@ -157,5 +158,3 @@ var ObservableSlim = (function() {
 	};
 
 })();
-
-
