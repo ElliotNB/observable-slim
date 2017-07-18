@@ -135,7 +135,7 @@ var ObservableSlim = (function() {
 				An ES6 Proxy object.
 		*/
 		create: function(target, domDelay, handler) {
-			var observable = _create(target);
+			var observable = _create(target, domDelay);
 			if (typeof handler === "function") this.observe(observable, handler);
 			return observable;
 			
