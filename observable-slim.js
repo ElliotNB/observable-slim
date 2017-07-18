@@ -81,24 +81,22 @@ var ObservableSlim = (function() {
 					// store the change that just occurred
 					changes.push({"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath});
 					
-					// invoke any functions that are observing changes
-					for (var i = 0; i < observable.observers.length; i++) {
-						
-						// execute handler functions on a 10ms settimeout, this prevents the handler functions from being executed 
-						// separately on every change -- this is necessary because the handler functions are often to trigger UI updates
-						if (domDelay === true) {
-							setTimeout((function(numChanges,i) {
-								return function() {
-									if (numChanges === changes.length) {
-										observable.observers[i](changes);
-										changes = [];
-									}
-								};
-							})(changes.length,i),10);
-						} else {
-							observable.observers[i](changes);
-							changes = [];
-						}
+					// execute handler functions on a 10ms settimeout, this prevents the handler functions from being executed 
+					// separately on every change -- this is necessary because the handler functions are often to trigger UI updates
+					if (domDelay === true) {
+						setTimeout((function(numChanges,i) {
+							return function() {
+								if (numChanges === changes.length) {
+									// invoke any functions that are observing changes
+									for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
+									changes = [];
+								}
+							};
+						})(changes.length,i),10);
+					} else {
+						// invoke any functions that are observing changes
+						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
+						changes = [];
 					}
 					
 					// because the value actually differs than the previous value
