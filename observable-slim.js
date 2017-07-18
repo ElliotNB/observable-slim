@@ -38,6 +38,7 @@ var ObservableSlim = (function() {
 			
 			Parameters:
 				target 				- required, plain JavaScript object that we want to observe for changes.
+				domDelay 			- batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
 				originalObservable 	- object, the original observable created by the user, exists for recursion purposes, 
 									  allows one observable to observe change on any nested/child objects.
 				originalPath 		- string, the path of the property in relation to the target on the original observable, 
@@ -46,7 +47,7 @@ var ObservableSlim = (function() {
 			Returns:
 				An ES6 Proxy object.
 	*/
-	var _create = function(target, originalObservable, originalPath) {
+	var _create = function(target, domDelay, originalObservable, originalPath) {
 		
 		var observable = originalObservable || null;
 		var path = originalPath || "";
@@ -60,7 +61,7 @@ var ObservableSlim = (function() {
 				// the target object and any objects nested within.
 				if (typeof target[property] === "object" && target[property] !== null) {
 					var newPath = (path !== "") ? (path + "." + property) : property;
-					return _create(target[property], observable, newPath);
+					return _create(target[property], domDelay, observable, newPath);
 				} else {
 					return target[property];
 				}
@@ -85,14 +86,19 @@ var ObservableSlim = (function() {
 						
 						// execute handler functions on a 10ms settimeout, this prevents the handler functions from being executed 
 						// separately on every change -- this is necessary because the handler functions are often to trigger UI updates
-						setTimeout((function(numChanges,i) {
-							return function() {
-								if (numChanges === changes.length) {
-									observable.observers[i](changes);
-									changes = [];
-								}
-							};
-						})(changes.length,i),10);
+						if (domDelay === true) {
+							setTimeout((function(numChanges,i) {
+								return function() {
+									if (numChanges === changes.length) {
+										observable.observers[i](changes);
+										changes = [];
+									}
+								};
+							})(changes.length,i),10);
+						} else {
+							observable.observers[i](changes);
+							changes = [];
+						}
 					}
 					
 					// because the value actually differs than the previous value
@@ -122,12 +128,13 @@ var ObservableSlim = (function() {
 			
 			Parameters
 				target - required, plain JavaScript object that we want to observe for changes.
+				domDelay - required, batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
 				handler - optional, this function will be invoked when a change is made to the observable (not to be confused with the handler defined in the create() method).
 			
 			Returns:
 				An ES6 Proxy object.
 		*/
-		create: function(target, handler) {
+		create: function(target, domDelay, handler) {
 			var observable = _create(target);
 			if (typeof handler === "function") this.observe(observable, handler);
 			return observable;
@@ -158,3 +165,5 @@ var ObservableSlim = (function() {
 	};
 
 })();
+
+

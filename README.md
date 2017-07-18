@@ -17,16 +17,18 @@ understood as possible. Minifies down to roughly 500 characters.
 
 ```javascript
 var test = {};
-var p = ObservableSlim.create(test, function(target, property, value, path) {
-	console.log("Change on '"+path+"', new value: " + JSON.stringify(value));
+var p = ObservableSlim.create(test, true, function(changes) {
+	console.log(JSON.stringify(changes));
 });
 
-p.hello = "world";  		// Change on 'hello', new value: "world"
-p.testing = {}; 			// Change on 'testing', new value: {}
-p.testing.blah = 42;		// Change on 'testing.blah', new value: 42
-p.arr = [];					// Change on 'testing.arr', new value: []
-p.arr.push("hello world");	// Change on 'testing.arr.0', new value: "hello world"
-console.log(test)			// {"hello":"world","testing":{"blah":42},"arr":["hello world"]}
+p.hello = "world";  		// [{"target":{},"property":"hello","newValue":"world","currentPath":"hello"}]
+p.testing = {}; 			// [{"target":{"hello":"world"},"property":"testing","newValue":{},"currentPath":"testing"}]
+p.testing.blah = 42;		// [{"target":{},"property":"blah","newValue":42,"currentPath":"testing.blah"}]
+p.arr = [];					// [{"target":{"hello":"world","testing":{"blah":42}},"property":"arr","newValue":[],"currentPath":"arr"}]
+p.arr.push("splice test");	// [{"target":[],"property":"0","newValue":"splice test","currentPath":"arr"}]
+p.arr.push("hello world");	// [{"target":["splice test"],"property":"1","newValue":"hello world","currentPath":"arr"}]
+p.arr.splice(0,1);    // [{"target":["splice test","hello world"],"property":"0","newValue":"hello world","previousValue":"splice test","currentPath":"arr"}]
+console.log(JSON.stringify(test));			// {"hello":"world","testing":{"blah":42},"arr":["hello world"]}
 ```
 
 If you wish to add a second observer function to the same object, you may do so as follows:
