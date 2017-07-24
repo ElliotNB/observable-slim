@@ -81,6 +81,10 @@ var ObservableSlim = (function() {
 					// store the change that just occurred
 					changes.push({"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath});
 					
+					// because the value actually differs than the previous value
+					// we need to store the new value on the original target object
+					target[property] = value;
+					
 					// execute handler functions on a 10ms settimeout, this prevents the handler functions from being executed 
 					// separately on every change -- this is necessary because the handler functions are often to trigger UI updates
 					if (domDelay === true) {
@@ -99,9 +103,6 @@ var ObservableSlim = (function() {
 						changes = [];
 					}
 					
-					// because the value actually differs than the previous value
-					// we need to store the new value on the original target object
-					target[property] = value;
 				}
 				
 				return true;
