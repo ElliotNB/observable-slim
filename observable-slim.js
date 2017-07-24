@@ -66,46 +66,74 @@ var ObservableSlim = (function() {
 					return target[property];
 				}
 			},
+			deleteProperty: function(target, property) {
+				
+				// in order to report what the previous value was, we must make a copy of it before it is deleted
+				var previousValue = Object.assign({}, target);
+ 
+				// get the path of the property being deleted
+				var currentPath = this._getPath(target, property);
+				
+				// record the deletion that just took place
+				changes.push({"type":"delete","target":target,"property":property,"newValue":null,"previousValue":previousValue[property],"currentPath":currentPath});
+				
+				// perform the delete that we've trapped
+				delete target[property];
+				
+				this._notifyObservers(changes.length);
+				
+				return true;
+				
+			},
 			set: function(target, property, value, receiver) {
 
 				// only record a change if the new value differs from the old one
 				if (target[property] !== value) {
 				
-					// record the current path of the object property being modified
-					if (target instanceof Array) {
-						var currentPath = (path !== "") ? (path) : property;
-					} else {
-						var currentPath = (path !== "") ? (path + "." + property) : property;
-					}
-
+					// get the path of the object property being modified
+					var currentPath = this._getPath(target, property);
+					
+					// determine if we're adding something new or modifying somethat that already existed
+					var type = "update";
+					if (typeof receiver[property] === "undefined") type = "add";
+					
 					// store the change that just occurred
-					changes.push({"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath});
+					changes.push({"type":type,"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath});
 					
 					// because the value actually differs than the previous value
 					// we need to store the new value on the original target object
 					target[property] = value;
 					
-					// execute handler functions on a 10ms settimeout, this prevents the handler functions from being executed 
-					// separately on every change -- this is necessary because the handler functions are often to trigger UI updates
-					if (domDelay === true) {
-						setTimeout((function(numChanges,i) {
-							return function() {
-								if (numChanges === changes.length) {
-									// invoke any functions that are observing changes
-									for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-									changes = [];
-								}
-							};
-						})(changes.length,i),10);
-					} else {
-						// invoke any functions that are observing changes
-						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-						changes = [];
-					}
+					this._notifyObservers(changes.length);
 					
 				}
 				
 				return true;
+			},
+			_getPath: function(target, property) {
+				if (target instanceof Array) {
+					return (path !== "") ? (path) : property;
+				} else {
+					return (path !== "") ? (path + "." + property) : property;
+				}
+			},
+			_notifyObservers: function(numChanges) {
+			
+				// execute observer functions on a 10ms settimeout, this prevents the observer functions from being executed 
+				// separately on every change -- this is necessary because the observer functions will often trigger UI updates
+				if (domDelay === true) {
+					setTimeout(function() {
+						if (numChanges === changes.length) {
+							// invoke any functions that are observing changes
+							for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
+							changes = [];
+						}
+					},10);
+				} else {
+					// invoke any functions that are observing changes
+					for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
+					changes = [];
+				}
 			}
 		}
 		
@@ -164,5 +192,3 @@ var ObservableSlim = (function() {
 	};
 
 })();
-
-
