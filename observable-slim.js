@@ -54,6 +54,33 @@ var ObservableSlim = (function() {
 		
 		var changes = [];
 		
+		var _getPath = function(target, property) {
+			if (target instanceof Array) {
+				return (path !== "") ? (path) : property;
+			} else {
+				return (path !== "") ? (path + "." + property) : property;
+			}
+		};
+		
+		var _notifyObservers = function(numChanges) {
+		
+			// execute observer functions on a 10ms settimeout, this prevents the observer functions from being executed 
+			// separately on every change -- this is necessary because the observer functions will often trigger UI updates
+			if (domDelay === true) {
+				setTimeout(function() {
+					if (numChanges === changes.length) {
+						// invoke any functions that are observing changes
+						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
+						changes = [];
+					}
+				},10);
+			} else {
+				// invoke any functions that are observing changes
+				for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
+				changes = [];
+			}
+		};
+		
 		var handler = { 
 			get: function(target, property) {
 				// if we are traversing into a new object, then we want to record path to that object and return a new observable.
@@ -72,7 +99,7 @@ var ObservableSlim = (function() {
 				var previousValue = Object.assign({}, target);
  
 				// get the path of the property being deleted
-				var currentPath = this._getPath(target, property);
+				var currentPath = _getPath(target, property);
 				
 				// record the deletion that just took place
 				changes.push({"type":"delete","target":target,"property":property,"newValue":null,"previousValue":previousValue[property],"currentPath":currentPath});
@@ -80,7 +107,7 @@ var ObservableSlim = (function() {
 				// perform the delete that we've trapped
 				delete target[property];
 				
-				this._notifyObservers(changes.length);
+				_notifyObservers(changes.length);
 				
 				return true;
 				
@@ -91,7 +118,7 @@ var ObservableSlim = (function() {
 				if (target[property] !== value) {
 				
 					// get the path of the object property being modified
-					var currentPath = this._getPath(target, property);
+					var currentPath = _getPath(target, property);
 					
 					// determine if we're adding something new or modifying somethat that already existed
 					var type = "update";
@@ -104,44 +131,20 @@ var ObservableSlim = (function() {
 					// we need to store the new value on the original target object
 					target[property] = value;
 					
-					this._notifyObservers(changes.length);
+					_notifyObservers(changes.length);
 					
 				}
 				
 				return true;
-			},
-			_getPath: function(target, property) {
-				if (target instanceof Array) {
-					return (path !== "") ? (path) : property;
-				} else {
-					return (path !== "") ? (path + "." + property) : property;
-				}
-			},
-			_notifyObservers: function(numChanges) {
-			
-				// execute observer functions on a 10ms settimeout, this prevents the observer functions from being executed 
-				// separately on every change -- this is necessary because the observer functions will often trigger UI updates
-				if (domDelay === true) {
-					setTimeout(function() {
-						if (numChanges === changes.length) {
-							// invoke any functions that are observing changes
-							for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-							changes = [];
-						}
-					},10);
-				} else {
-					// invoke any functions that are observing changes
-					for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-					changes = [];
-				}
 			}
+			
 		}
 		
 		// create the proxy that we'll use to observe any changes
 		var p = new Proxy(target, handler);
 		
 		// we don't want to create a new observable if this function was invoked recursively
-		if (observable === null) observable = {"observable":p, "observers":[]};
+		if (observable === null) observable = {"target":target, "domDelay":domDelay, "observable":p, "observers":[]};
 		
 		observables.push(observable);
 		
@@ -162,6 +165,17 @@ var ObservableSlim = (function() {
 				An ES6 Proxy object.
 		*/
 		create: function(target, domDelay, handler) {
+			
+			// first determine if we already have an observable for the given target
+			var i = observables.length;
+			while (i--) {
+				// if we find a match, then we add the handler function to the array of observers for this observable
+				if (target === observables[i].target && domDelay === observables[i].domDelay) {
+					observables[i].observers.push(handler);
+					return observables[i].observable;
+				}
+			};
+			
 			var observable = _create(target, domDelay);
 			if (typeof handler === "function") this.observe(observable, handler);
 			return observable;
