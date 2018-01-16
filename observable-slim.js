@@ -64,16 +64,9 @@ var ObservableSlim = (function() {
 		
 		var _notifyObservers = function(numChanges) {
 			
-			// determine if observer execution is paused for this observable
-			var i = observables.length;
-			while (i--) {
-				if (observables[i] === observable) {
-					// if the observable is paused, then we don't want to execute any of the observer functions
-					if (observables[i].paused === true) return;
-					break;
-				}
-			};
-		
+			// if the observable is paused, then we don't want to execute any of the observer functions
+			if (observable.paused === true) return;
+					
 			// execute observer functions on a 10ms settimeout, this prevents the observer functions from being executed 
 			// separately on every change -- this is necessary because the observer functions will often trigger UI updates
 			if (domDelay === true) {
@@ -151,15 +144,15 @@ var ObservableSlim = (function() {
 		}
 		
 		// create the proxy that we'll use to observe any changes
-		var p = new Proxy(target, handler);
+		var proxy = new Proxy(target, handler);
 		
 		// we don't want to create a new observable if this function was invoked recursively
 		if (observable === null) {
-			observable = {"target":target, "domDelay":domDelay, "observable":p, "observers":[],"paused":false};
+			observable = {"target":target, "domDelay":domDelay, "proxy":proxy, "observers":[],"paused":false,"path":path};
 			observables.push(observable);
 		}
 
-		return p;
+		return proxy;
 	};
 	
 	return {
@@ -170,61 +163,61 @@ var ObservableSlim = (function() {
 			Parameters
 				target - required, plain JavaScript object that we want to observe for changes.
 				domDelay - required, batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
-				handler - optional, this function will be invoked when a change is made to the observable (not to be confused with the handler defined in the create() method).
+				callback - optional, this function will be invoked when a change is made to the proxy
 			
 			Returns:
 				An ES6 Proxy object.
 		*/
-		create: function(target, domDelay, handler) {
+		create: function(target, domDelay, callback) {
 			
-			// first determine if we already have an observable for the given target
+			// first determine if we already have a proxy for the given target
 			var i = observables.length;
 			while (i--) {
-				// if we find a match, then we add the handler function to the array of observers for this observable
+				// if we find a match, then we add the callback function to the array of observers for this observable
 				if (target === observables[i].target && domDelay === observables[i].domDelay) {
-					observables[i].observers.push(handler);
-					return observables[i].observable;
+					observables[i].observers.push(callback);
+					return observables[i].proxy;
 				}
 			};
 			
-			var observable = _create(target, domDelay);
-			if (typeof handler === "function") this.observe(observable, handler);
-			return observable;
+			var proxy = _create(target, domDelay);
+			if (typeof callback === "function") this.observe(proxy, callback);
+			return proxy;
 			
 		},
 		
 		/*	Method: observe
-				This method is used to add a new observer function to an existing observable.
+				This method is used to add a new observer function to an existing proxy.
 		
 			Parameters:
-				observable 	- the ES6 Proxy returned by the create() method. We want to observe changes made to this object.
-				handler 	- this function will be invoked when a change is made to the observable (not to be confused with the 
-							  handler defined in the create() method).
+				proxy 	- the ES6 Proxy returned by the create() method. We want to observe changes made to this object.
+				callback 	- this function will be invoked when a change is made to the observable (not to be confused with the 
+							  callback defined in the create() method).
 			
 			Returns:
 				Nothing.
 		*/
-		observe: function(observable, handler) {
+		observe: function(proxy, callback) {
 			// loop over all the observables created by the _create() function
 			var i = observables.length;
 			while (i--) {
-				if (observables[i].observable === observable) {
-					observables[i].observers.push(handler);
+				if (observables[i].proxy === proxy) {
+					observables[i].observers.push(callback);
 					break;
 				}
 			};
 		},
 		
 		/*	Method: pause
-				This method will prevent any observer functions from being invoked when a change occurs to observable.
+				This method will prevent any observer functions from being invoked when a change occurs to a proxy.
 			
 			Parameters:
-				observable 	- the ES6 Proxy returned by the create() method.
+				proxy 	- the ES6 Proxy returned by the create() method.
 		*/
-		pause: function(observable) {
+		pause: function(proxy) {
 			var i = observables.length;
 			while (i--) {
-				if (observables[i].observable === observable) {
+				if (observables[i].proxy === proxy) {
 					observables[i].paused = true;
 					break;
 				}
@@ -232,15 +225,15 @@ var ObservableSlim = (function() {
 		},
 		
 		/*	Method: resume
-				This method will resume execution of any observer functions when a change is made to observable.
+				This method will resume execution of any observer functions when a change is made to a proxy.
 			
 			Parameters:
-				observable 	- the ES6 Proxy returned by the create() method.
+				proxy 	- the ES6 Proxy returned by the create() method.
 		*/
-		resume: function(observable) {
+		resume: function(proxy) {
 			var i = observables.length;
 			while (i--) {
-				if (observables[i].observable === observable) {
+				if (observables[i].proxy === proxy) {
 					observables[i].paused = false;
 					break;
 				}
