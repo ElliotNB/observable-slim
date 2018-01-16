@@ -31,6 +31,9 @@ var ObservableSlim = (function() {
 
 	// An array that stores all of the observables created through the public create() method below.
 	var observables = [];
+	
+	// An array that stores all of the proxies and target pairs created through the _create() method below.
+	var proxyList = [];
 
 	/*	Function: _create
 				Private internal function that is invoked to create a new ES6 Proxy whose changes we can observe through 
@@ -90,6 +93,14 @@ var ObservableSlim = (function() {
 				// recursively returning a new observable allows us a single Observable.observe() to monitor all changes on 
 				// the target object and any objects nested within.
 				if (typeof target[property] === "object" && target[property] !== null) {
+					
+					// loop through the proxies we've already created, if we've already created a proxy for a given target,
+					// then we can return that proxy
+					var i = proxyList.length;
+					while (i--) if (proxyList[i].target === target[property]) return proxyList[i].proxy;
+					
+					// if we're arrived here, then that means there is no proxy for the object the user just accessed, so we
+					// have to create a new proxy for it
 					var newPath = (path !== "") ? (path + "." + property) : property;
 					return _create(target[property], domDelay, observable, newPath);
 				} else {
@@ -143,8 +154,13 @@ var ObservableSlim = (function() {
 			
 		}
 		
+
+		
 		// create the proxy that we'll use to observe any changes
 		var proxy = new Proxy(target, handler);
+		
+		// store the proxy we've created so it isn't re-created unnecessairly via get handler
+		proxyList.push({"target":target,"proxy":proxy});
 		
 		// we don't want to create a new observable if this function was invoked recursively
 		if (observable === null) {
