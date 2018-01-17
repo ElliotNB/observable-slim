@@ -24,137 +24,56 @@ var p = ObservableSlim.create(test, true, function(changes) {
 p.hello = "world";   
 
 /* 	Console log:
-	[{
-		"type": "add",
-		"target": {
-			"hello": "world"
-		},
-		"property": "hello",
-		"newValue": "world",
-		"currentPath": "hello"
-	}]
+	[{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello"}]
+*/
+
+p.hello = "WORLD";
+
+/*	Console log:
+	[{"type":"update","target":{"testing":{"blah":42},"arr":[],"hello":"WORLD"},"property":"hello","newValue":"WORLD","previousValue":"world","currentPath":"hello"}]
+*/
 
 p.testing = {};   
 
 /* 	Console log:
-	[{
-		"type": "add",
-		"target": {
-			"hello": "world",
-			"testing": {
-				
-			}
-		},
-		"property": "testing",
-		"newValue": {
-			
-		},
-		"currentPath": "testing"
-	}]
+	[{"type":"add","target":{"hello":"world","testing":{}},"property":"testing","newValue":{},"currentPath":"testing"}]
 */
 
 p.testing.blah = 42;   
 
 /* 	Console log:
-	[{
-		"type": "add",
-		"target": {
-			"blah": 42
-		},
-		"property": "blah",
-		"newValue": 42,
-		"currentPath": "testing.blah"
-	}]
+	[{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah"}]
 */
 
 p.arr = [];   
 
 /* 	Console log:
-	[{
-		"type": "add",
-		"target": {
-			"hello": "world",
-			"testing": {
-				"blah": 42
-			},
-			"arr": []
-		},
-		"property": "arr",
-		"newValue": [],
-		"currentPath": "arr"
-	}]
+	[{"type":"add","target":{"hello":"world","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr"}]
 */
 p.arr.push("hello world");   
 
 /* 	Console log:
-	[{
-		"type": "add",
-		"target": ["hello world"],
-		"property": "0",
-		"newValue": "hello world",
-		"currentPath": "arr"
-	}]
-*/
-
-console.log(test); 
-  
-/* 	Console log:
-	{
-		"hello": "world",
-		"testing": {
-			"blah": 42
-		},
-		"arr": ["hello world"]
-	}
+	[{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr"}]
 */
 
 delete p.hello;  
  
 /*	Console log:
-	[{
-		"type": "delete",
-		"target": {
-			"testing": {
-				"blah": 42
-			},
-			"arr": ["hello world"]
-		},
-		"property": "hello",
-		"newValue": null,
-		"previousValue": "world",
-		"currentPath": "hello"
-	}]
+	[{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"world","currentPath":"hello"}]
 */
 p.arr.splice(0,1);   
 
 /*  Console log:
-	[{
-		"type": "delete",
-		"target": [],
-		"property": "0",
-		"newValue": null,
-		"previousValue": "hello world",
-		"currentPath": "arr"
-	},
-	{
-		"type": "update",
-		"target": [],
-		"property": "length",
-		"newValue": 0,
-		"previousValue": 1,
-		"currentPath": "arr"
-	}]
+	[
+		{"type":"delete","target":[],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr"}
+		,{"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr"}
+	]
 */
 
-console.log(test);   
+console.log(JSON.stringify(test));   
 
 /*	Console log
-	{
-		"testing": {
-			"blah": 42
-		},
-		"arr": []
-	}
+	{"testing":{"blah":42},"arr":[]}
 */
 ```
 
@@ -164,6 +83,21 @@ ObservableSlim.observe(p, function(changes) {
 	console.log(changes);
 });
 ```
+
+If you wish to have one observer on a parent object and another observer on a child object, you may do so as follows:
+```javascript
+
+var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":"tree"};
+
+var p = ObservableSlim.create(data, true, function(changes) { console.log("First observable");console.log(changes); });
+var pp = ObservableSlim.create(data.testing, true, function(changes) { console.log("Second observable");console.log(changes); });
+var ppp = ObservableSlim.create(data.testing.test, true, function(changes) { console.log("Third observable");console.log(changes); });
+```
+
+- A change to ppp.testb will trigger the callback on all three observables. 
+- A change to p.testing.test.testb will also trigger the callback on all three observables.
+- A change to pp.testc will only trigger the first observable and second observable.
+- A change to p.blah will only trigger the first observable.
 
 If you wish to pause the execution of observer functions, you may do so as follows:
 ```javascript
