@@ -72,10 +72,12 @@ p.arr.splice(0,1);
 
 console.log(JSON.stringify(test));   
 
-/*	Console log
+/*	Console log:
 	{"testing":{"blah":42},"arr":[]}
 */
 ```
+
+### Adding callbacks
 
 If you wish to add a second observer function to the same object, you may do so as follows:
 ```javascript
@@ -84,9 +86,10 @@ ObservableSlim.observe(p, function(changes) {
 });
 ```
 
+### Nested objects
+
 If you wish to have one observer on a parent object and another observer on a child object, you may do so as follows:
 ```javascript
-
 var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":"tree"};
 
 var p = ObservableSlim.create(data, true, function(changes) { console.log("First observable");console.log(changes); });
@@ -99,6 +102,8 @@ var ppp = ObservableSlim.create(data.testing.test, true, function(changes) { con
 - A change to pp.testc will only trigger the first observable and second observable.
 - A change to p.blah will only trigger the first observable.
 
+### Pause callbacks
+
 If you wish to pause the execution of observer functions, you may do so as follows:
 ```javascript
 var test = {};
@@ -107,6 +112,8 @@ var p = ObservableSlim.create(test, true, function(changes) {
 });
 ObservableSlim.pause(p);
 ```
+
+### Resuming callbacks
 
 While an observable is paused, no observer functions will be invoked when the target object is modified.
 
