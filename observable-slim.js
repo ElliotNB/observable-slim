@@ -99,8 +99,8 @@ var ObservableSlim = (function() {
 				// the target object and any objects nested within.
 				if (typeof target[property] === "object" && target[property] !== null) {
 					
-					// loop through the proxies we've already created, if we've already created a proxy for a given target,
-					// then we can return that proxy
+					// loop through the proxies we've already created, if a given observable has already created the same proxy
+					// for the same target object, then we can return that proxy (we don't need to create a new proxy).
 					var i = proxyList.length;
 					while (i--) if (proxyList[i].target === target[property] && proxyList[i].observable === observable) return proxyList[i].proxy;
 					
@@ -207,14 +207,12 @@ var ObservableSlim = (function() {
 						
 					};
 
-					// notify the callback handler functions that the target has been modified
+					// notify the observer functions that the target has been modified
 					_notifyObservers(changes.length);
 					
 				}
-				
 				return true;
 			}
-			
 		}
 		
 		// create the proxy that we'll use to observe any changes
@@ -238,27 +236,20 @@ var ObservableSlim = (function() {
 				through the Observerable.observe() method.
 			
 			Parameters
-				target - required, plain JavaScript object that we want to observe for changes.
-				domDelay - required, batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
-				callback - optional, this function will be invoked when a change is made to the proxy
+				target - Object, required, plain JavaScript object that we want to observe for changes.
+				domDelay - Boolean, required, if true, then batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
+				observer - Function, optional, will be invoked when a change is made to the proxy.
 			
 			Returns:
 				An ES6 Proxy object.
 		*/
-		create: function(target, domDelay, callback) {
+		create: function(target, domDelay, observer) {
 			
-			// first determine if we already have a proxy for the given target
-			var i = observables.length;
-			while (i--) {
-				// if we find a match, then we add the callback function to the array of observers for this observable
-				if (target === observables[i].target && domDelay === observables[i].domDelay) {
-					observables[i].observers.push(callback);
-					return observables[i].proxy;
-				}
-			};
-			
+			// fire off the _create() method -- it will create a new observable and proxy and return the proxy
 			var proxy = _create(target, domDelay);
-			if (typeof callback === "function") this.observe(proxy, callback);
+			
+			// assign the observer function
+			if (typeof observer === "function") this.observe(proxy, observer);
 			
 			// initialize Proxies recursively through the object. the Proxy 'get' handler returns a Proxy whenever a nested object is accessed
 			(function iterate(obj) {
@@ -278,18 +269,18 @@ var ObservableSlim = (function() {
 		
 			Parameters:
 				proxy 	- the ES6 Proxy returned by the create() method. We want to observe changes made to this object.
-				callback 	- this function will be invoked when a change is made to the observable (not to be confused with the 
-							  callback defined in the create() method).
+				observer 	- this function will be invoked when a change is made to the observable (not to be confused with the 
+							  observer defined in the create() method).
 			
 			Returns:
 				Nothing.
 		*/
-		observe: function(proxy, callback) {
+		observe: function(proxy, observer) {
 			// loop over all the observables created by the _create() function
 			var i = observables.length;
 			while (i--) {
 				if (observables[i].proxy === proxy) {
-					observables[i].observers.push(callback);
+					observables[i].observers.push(observer);
 					break;
 				}
 			};
@@ -303,12 +294,16 @@ var ObservableSlim = (function() {
 		*/
 		pause: function(proxy) {
 			var i = observables.length;
+			var foundMatch = false;
 			while (i--) {
 				if (observables[i].proxy === proxy) {
 					observables[i].paused = true;
+					foundMatch = true;
 					break;
 				}
 			};
+			
+			if (foundMatch == false) throw new Error("ObseravableSlim could not pause observable -- matching proxy not found.");
 		},
 		
 		/*	Method: resume
@@ -319,14 +314,52 @@ var ObservableSlim = (function() {
 		*/
 		resume: function(proxy) {
 			var i = observables.length;
+			var foundMatch = false;
 			while (i--) {
 				if (observables[i].proxy === proxy) {
 					observables[i].paused = false;
+					foundMatch = true;
 					break;
 				}
 			};
-		}
+			
+			if (foundMatch == false) throw new Error("ObseravableSlim could not resume observable -- matching proxy not found.");
+		},
 		
+		/*	Method: remove
+				This method will remove the observable and proxy thereby preventing any further callback observers for 
+				changes occuring to the target object.
+			
+			Parameters:
+				proxy 	- the ES6 Proxy returned by the create() method.
+		*/
+		remove: function(proxy) {
+			
+			var foundObservable = false;
+			var foundProxy = false;
+			
+			var a = observables.length;
+			while (a--) {
+				if (observables[a].proxy === proxy) {
+					foundObservable = true;
+					break;
+				}
+			};
+			
+			var b = proxyList.length;
+			while (b--) {
+				if (proxyList[b].proxy === proxy) {
+					foundProxy = true;
+					break;
+				}
+			}
+			
+			if (foundObservable && foundProxy) {
+				observables.splice(a,1);
+				proxyList.splice(b,1);
+			} else {
+				throw new Error("ObseravableSlim could not remove observable -- matching proxy not found.");
+			}
+		}
 	};
-
 })();
