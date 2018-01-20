@@ -31,8 +31,12 @@ var ObservableSlim = (function() {
 	// An array that stores all of the observables created through the public create() method below.
 	var observables = [];
 	
-	// An array that stores all of the proxies and target pairs created through the _create() method below.
-	var proxyList = [];
+	// An array of all the objects that we have assigned Proxies to
+	var targets = [];
+	
+	// An array of arrays containing the Proxies created for each target object. targetsProxy is index-matched with 
+	// 'targets' -- together, the pair offer a Hash table where the key is not a string nor number, but the actual target object
+	var targetsProxy = [];
 	
 	// this variable tracks duplicate proxies assigned to the same target.
 	// the 'set' handler below will trigger the same change on all other Proxies tracking the same target.
@@ -97,12 +101,16 @@ var ObservableSlim = (function() {
 				// if we are traversing into a new object, then we want to record path to that object and return a new observable.
 				// recursively returning a new observable allows us a single Observable.observe() to monitor all changes on 
 				// the target object and any objects nested within.
-				if (typeof target[property] === "object" && target[property] !== null) {
+				if (target[property] !== null && typeof target[property] === "object") {
 					
-					// loop through the proxies we've already created, if a given observable has already created the same proxy
-					// for the same target object, then we can return that proxy (we don't need to create a new proxy).
-					var i = proxyList.length;
-					while (i--) if (proxyList[i].target === target[property] && proxyList[i].observable === observable) return proxyList[i].proxy;
+					// if we've previously setup a proxy on this target, then...
+					var a = targets.indexOf(target[property]);
+					if (a > -1) {
+						var b = targetsProxy[a].length;
+						// loop through the proxies we've already created, if a given observable has already created the same proxy
+						// for the same target object, then we can return that proxy (we don't need to create a new proxy).
+						while (b--) if (targetsProxy[a][b].observable === observable) return targetsProxy[a][b].proxy;
+					}
 					
 					// if we're arrived here, then that means there is no proxy for the object the user just accessed, so we
 					// have to create a new proxy for it
@@ -132,21 +140,25 @@ var ObservableSlim = (function() {
 				
 				if (originalChange === true) {
 				
-					// loop over each proxy and see if the target for this change has any other proxies
-					var i = proxyList.length;
-					while (i--) {
-						// if the same target has a different proxy
-						if (proxyList[i].target === target && proxyList[i].proxy !== proxy) {
-							
-							// !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
-							// prevent a change on dupProxy from re-triggering the same change on other proxies)
-							dupProxy = proxyList[i].proxy;
-				
-							// make the same delete on the different proxy for the same target object. it is important that we make this change *after* we invoke the same change
-							// on any other proxies so that the previousValue can show up correct for the other proxies
-							delete proxyList[i].proxy[property];
+					// if we have already setup a proxy on this target, then...
+					var a = targets.indexOf(target);
+					if (a > -1) {
+						
+						// loop over each proxy and see if the target for this change has any other proxies
+						var b = targetsProxy[a].length;
+						while (b--) {
+							// if the same target has a different proxy
+							if (targetsProxy[a][b].proxy !== proxy) {
+								// !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
+								// prevent a change on dupProxy from re-triggering the same change on other proxies)
+								dupProxy = targetsProxy[a][b].proxy;
+					
+								// make the same delete on the different proxy for the same target object. it is important that we make this change *after* we invoke the same change
+								// on any other proxies so that the previousValue can show up correct for the other proxies
+								delete targetsProxy[a][b].proxy[property];
+							}
 						}
-					};
+					}
 				
 					// perform the delete that we've trapped
 					delete target[property];
@@ -185,25 +197,44 @@ var ObservableSlim = (function() {
 					// observers can be modified of the change that has occurred.
 					if (originalChange === true) {
 
-						// loop over each proxy and see if the target for this change has any other proxies
-						var i = proxyList.length;
-						while (i--) {
-							// if the same target has a different proxy
-							if (proxyList[i].target === target && proxyList[i].proxy !== proxy) {
+					
+						// if we have already setup a proxy on this target, then...
+						var a = targets.indexOf(target);
+						if (a > -1) {
+							
+							// loop over each proxy and see if the target for this change has any other proxies
+							var b = targetsProxy[a].length;
+							while (b--) {
+								// if the same target has a different proxy
+								if (targetsProxy[a][b].proxy !== proxy) {
 								
-								// !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
-								// prevent a change on dupProxy from re-triggering the same change on other proxies)
-								dupProxy = proxyList[i].proxy;
+									// !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
+									// prevent a change on dupProxy from re-triggering the same change on other proxies)
+									dupProxy = targetsProxy[a][b].proxy;
+									
+									// invoke the same change on the different proxy for the same target object. it is important that we make this change *after* we invoke the same change
+									// on any other proxies so that the previousValue can show up correct for the other proxies
+									targetsProxy[a][b].proxy[property] = value;
 								
-								// invoke the same change on the different proxy for the same target object. it is important that we make this change *after* we invoke the same change
-								// on any other proxies so that the previousValue can show up correct for the other proxies
-								proxyList[i].proxy[property] = value;
+								}
 							}
 						};
 						
 						// because the value actually differs than the previous value
 						// we need to store the new value on the original target object
 						target[property] = value;
+						
+						// if an object was just assigned to a property on the target, then we need to iterate through that object
+						// so all portions of it are observed
+						if (typeof value == "object") {
+							(function iterate(obj) {
+								for (var property in obj) {
+									if (obj.hasOwnProperty(property)) {
+										if (obj[property] !== null && typeof obj[property] === "object") iterate(obj[property]);
+									}
+								}
+							})(proxy[property]);
+						}
 						
 					};
 
@@ -225,7 +256,20 @@ var ObservableSlim = (function() {
 		}
 
 		// store the proxy we've created so it isn't re-created unnecessairly via get handler
-		proxyList.push({"target":target,"proxy":proxy,"observable":observable});
+		var proxyItem = {"target":target,"proxy":proxy,"observable":observable};
+		
+		var i = targets.indexOf(target);
+		
+		// if we have already created a Proxy for this target object then we add it to the corresponding array 
+		// on targetsProxy (targets and targetsProxy work together as a Hash table indexed by the actual target object).
+		if (i > -1) {
+			targetsProxy[i].push(proxyItem);
+		// else this is a target object that we have not yet created a Proxy for, so we must add it to targets,
+		// and push a new array on to targetsProxy containing the new Proxy
+		} else {
+			targets.push(target);
+			targetsProxy.push([proxyItem]);
+		}
 		
 		return proxy;
 	};
@@ -255,7 +299,7 @@ var ObservableSlim = (function() {
 			(function iterate(obj) {
 				for (var property in obj) {
 					if (obj.hasOwnProperty(property)) {
-						if (typeof obj[property] == "object") iterate(obj[property]);
+						if (obj[property] !== null && typeof obj[property] === "object") iterate(obj[property]);
 					}
 				}
 			})(proxy);
@@ -334,29 +378,35 @@ var ObservableSlim = (function() {
 				proxy 	- the ES6 Proxy returned by the create() method.
 		*/
 		remove: function(proxy) {
+		
+			var matchedObservable = null;
+			var foundMatch = false;
 			
-			var foundObservable = false;
-			var foundProxy = false;
-			
-			var a = observables.length;
-			while (a--) {
-				if (observables[a].proxy === proxy) {
-					foundObservable = true;
+			var c = observables.length;
+			while (c--) {
+				if (observables[c].proxy === proxy) {
+					matchedObservable = observables[c];
+					foundMatch = true;
 					break;
 				}
 			};
 			
-			var b = proxyList.length;
-			while (b--) {
-				if (proxyList[b].proxy === proxy) {
-					foundProxy = true;
-					break;
-				}
-			}
+			var a = targetsProxy.length;
+			while (a--) {
+				var b = targetsProxy[a].length;
+				while (b--) {
+					if (targetsProxy[a][b].observable === matchedObservable) {
+						targetsProxy[a].splice(b,1);
+						if (targetsProxy[a].length == 0) {
+							targetsProxy.splice(a,1);
+							targets.splice(a,1);
+						};
+					}
+				};
+			};
 			
-			if (foundObservable && foundProxy) {
-				observables.splice(a,1);
-				proxyList.splice(b,1);
+			if (foundMatch === true) {
+				observables.splice(c,1);
 			} else {
 				throw new Error("ObseravableSlim could not remove observable -- matching proxy not found.");
 			}

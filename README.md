@@ -8,10 +8,10 @@ Licensed under the MIT license:
 http://www.opensource.org/licenses/MIT
 
 ## Overview 
-Observable Slim is a singleton that allows you to observe changes made to an object and any nested
-children of that object. It is intended to assist with one-way data binding, that is, in MVC parlance, 
-reflecting changes in the model to the view. Observable Slim aspires to be as lightweight and easily
-understood as possible. Minifies down to roughly 1500 characters.
+Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object 
+and any nested children of that object. It is intended to assist with state management and one-way 
+data binding. Observable Slim aspires to be as lightweight and simple as possible. Minifies 
+down to roughly 2300 characters.
 
 ## Usage
 
@@ -45,7 +45,6 @@ p.arr.push("hello world");
 // Console log:
 // [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr"}]
 
-
 delete p.hello;  
 // Console log:
 // [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"world","currentPath":"hello"}]
@@ -65,7 +64,7 @@ console.log(JSON.stringify(test));
 
 ### Nested objects
 
-If you wish to observe changes on a parent object and observe changes on an object nested on the parent, you may do so as follows:
+If you wish to observe changes on a parent object and observe changes to an object nested on the parent, you may do so as follows:
 ```javascript
 var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":"tree"};
 
@@ -74,10 +73,10 @@ var pp = ObservableSlim.create(data.testing, true, function(changes) { console.l
 var ppp = ObservableSlim.create(data.testing.test, true, function(changes) { console.log("Third observable");console.log(changes); });
 ```
 
-- A change to ppp.testb will trigger the callback on all three observables. 
-- A change to p.testing.test.testb will also trigger the callback on all three observables.
-- A change to pp.testc will only trigger the first observable and second observable.
-- A change to p.blah will only trigger the first observable.
+- A change to `ppp.testb` will trigger the callback on all three observables. 
+- A change to `p.testing.test.testb` will also trigger the callback on all three observables.
+- A change to `pp.testc` will only trigger the first and second observable.
+- A change to `p.blah` will only trigger the first observable.
 
 ### Add observers
 
