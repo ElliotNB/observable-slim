@@ -120,6 +120,43 @@ When you no longer need to use an observable or monitor the object that it targe
 ObservableSlim.remove(proxy);
 ```
 
+## Special features
+
+### Proxy check
+
+When using ObservableSlim, you can quickly determine whether or not an object is a proxy by checking the `__isProxy` property:
+
+```javascript
+var test = {"hello":"world"};
+var proxy = ObservableSlim.create(test, true, function(changes) {
+	console.log(JSON.stringify(changes));
+});
+
+console.log(proxy.__isProxy); // returns true
+console.log(test.__isProxy); // undefined property
+```
+
+### Looking up a parent object from a child object
+
+ObservableSlim allows you to traverse up from a child object and access the parent object:
+
+```javascript
+
+var test = {"hello":{"foo":{"bar":"world"}}};
+var proxy = ObservableSlim.create(test, true, function(changes) {
+	console.log(JSON.stringify(changes));
+});
+
+function traverseUp(childObj) {
+	console.log(JSON.stringify(childObj.__getParent())); // prints out test.hello: {"foo":{"bar":"world"}}
+	console.log(childObj.__getParent(2)); // attempts to traverse up two levels, returns undefined because test.hello does not have a parent object
+};
+
+traverseUp(proxy.hello.foo);
+```
+
+
+
 ## Requirements
 
 Observable Slim requires [ES6 Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).

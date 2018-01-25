@@ -44,6 +44,12 @@ var ObservableSlim = (function() {
 	// to track that a given Proxy was modified from the 'set' handler
 	var dupProxy = null;
 
+	var _getProperty = function(obj, path) {
+		return path.split('.').reduce(function(prev, curr) {
+			return prev ? prev[curr] : undefined
+		}, obj || self)
+	};
+	
 	/*	Function: _create
 				Private internal function that is invoked to create a new ES6 Proxy whose changes we can observe through 
 				the Observerable.observe() method.
@@ -98,6 +104,19 @@ var ObservableSlim = (function() {
 		
 		var handler = { 
 			get: function(target, property) {
+				
+				// implement a simple check for whether or not the object is a proxy, this helps the .create() method avoid
+				// creating Proxies of Proxies.
+				if (property === "__isProxy") return true;
+				if (property === "__getParent") {
+					return function(i) {
+						if (typeof i === "undefined") var i = 1;
+						var parentPath = _getPath(target, "__getParent").split(".");
+						parentPath.splice(-(i+1),(i+1));
+						return _getProperty(observable.proxy, parentPath.join("."));
+					}
+				}
+				
 				// if we are traversing into a new object, then we want to record path to that object and return a new observable.
 				// recursively returning a new observable allows us a single Observable.observe() to monitor all changes on 
 				// the target object and any objects nested within.
@@ -136,7 +155,7 @@ var ObservableSlim = (function() {
 				var currentPath = _getPath(target, property);
 				
 				// record the deletion that just took place
-				changes.push({"type":"delete","target":target,"property":property,"newValue":null,"previousValue":previousValue[property],"currentPath":currentPath});
+				changes.push({"type":"delete","target":target,"property":property,"newValue":null,"previousValue":previousValue[property],"currentPath":currentPath,"proxy":proxy});
 				
 				if (originalChange === true) {
 				
@@ -190,14 +209,13 @@ var ObservableSlim = (function() {
 					if (typeof receiver[property] === "undefined") type = "add";
 					
 					// store the change that just occurred. it is important that we store the change before invoking the other proxies so that the previousValue is correct
-					changes.push({"type":type,"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath});
+					changes.push({"type":type,"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath,"proxy":proxy});
 					
 					// !!IMPORTANT!! if this proxy was the first proxy to receive the change, then we need to go check and see
 					// if there are other proxies for the same project. if there are, then we will modify those proxies as well so the other
 					// observers can be modified of the change that has occurred.
 					if (originalChange === true) {
 
-					
 						// if we have already setup a proxy on this target, then...
 						var a = targets.indexOf(target);
 						if (a > -1) {
@@ -288,6 +306,10 @@ var ObservableSlim = (function() {
 				An ES6 Proxy object.
 		*/
 		create: function(target, domDelay, observer) {
+			
+			// test if the target is a Proxy, if it is, then we should throw an error. we do not allow creating proxies of proxies
+			// because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
+			if (target.__isProxy === true) throw new Error("ObservableSlim.create() cannot create a Proxy for a target object that is also a Proxy.");
 			
 			// fire off the _create() method -- it will create a new observable and proxy and return the proxy
 			var proxy = _create(target, domDelay);
@@ -407,8 +429,6 @@ var ObservableSlim = (function() {
 			
 			if (foundMatch === true) {
 				observables.splice(c,1);
-			} else {
-				throw new Error("ObseravableSlim could not remove observable -- matching proxy not found.");
 			}
 		}
 	};
