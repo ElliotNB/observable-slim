@@ -10,21 +10,6 @@
  *	children of that object. It is intended to assist with one-way data binding, that is, in MVC parlance, 
  *	reflecting changes in the model to the view. Observable Slim aspires to be as lightweight and easily
  *	understood as possible. Minifies down to roughly 3000 characters.
- *	Usage:
- *	
- *		var test = {};
- *		var p = ObservableSlim.create(test, true, function(changes) {
- *			console.log(JSON.stringify(changes));
- *		});
- *		
- *		p.hello = "world";  		// [{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello"}]
- *		p.testing = {}; 			// [{"type":"add","target":{"hello":"world","testing":{}},"property":"testing","newValue":{},"currentPath":"testing"}]
- *		p.testing.blah = 42;		// [{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah"}]
- *		p.arr = [];					// [{"type":"add","target":{"hello":"world","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr"}]
- *		p.arr.push("hello world");	// [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr"}]
- *		delete p.hello;				// [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"world","currentPath":"hello"}]
- *		p.arr.splice(0,1);			// [{"type":"delete","target":[],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr"},{"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr"}]
- *		console.log(test);			// {"testing":{"blah":42},"arr":[]}
  */
 
 
@@ -127,7 +112,7 @@ var ObservableSlim = (function() {
 				// if we are traversing into a new object, then we want to record path to that object and return a new observable.
 				// recursively returning a new observable allows us a single Observable.observe() to monitor all changes on 
 				// the target object and any objects nested within.
-				if (targetProp instanceof Object && targetProp !== null && typeof targetProp.__isProxy === "undefined") {
+				if (targetProp instanceof Object && targetProp !== null && target.hasOwnProperty(property) && typeof targetProp.__isProxy === "undefined") {
 					
 					// if we've previously setup a proxy on this target, then...
 					var a = targets.indexOf(targetProp);

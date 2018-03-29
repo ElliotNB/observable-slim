@@ -23,38 +23,36 @@ var p = ObservableSlim.create(test, true, function(changes) {
 
 p.hello = "world";   
 // Console log:
-// [{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello"}]
+// [{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello","proxy":{"hello":"world"}}]
 
 p.hello = "WORLD";
 // Console log:
-// [{"type":"update","target":{"testing":{"blah":42},"arr":[],"hello":"WORLD"},"property":"hello","newValue":"WORLD","previousValue":"world","currentPath":"hello"}]
+// [{"type":"update","target":{"hello":"WORLD"},"property":"hello","newValue":"WORLD","previousValue":"world","currentPath":"hello","proxy":{"hello":"WORLD"}}]
 
 p.testing = {};   
 // Console log:
-// [{"type":"add","target":{"hello":"world","testing":{}},"property":"testing","newValue":{},"currentPath":"testing"}]
+// [{"type":"add","target":{"hello":"WORLD","testing":{}},"property":"testing","newValue":{},"currentPath":"testing","proxy":{"hello":"WORLD","testing":{}}}]
 
 p.testing.blah = 42;   
 // Console log:
-// [{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah"}]
+// [{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah","proxy":{"blah":42}}]
 
 p.arr = [];   
 // Console log:
-// [{"type":"add","target":{"hello":"world","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr"}]
+// [{"type":"add","target":{"hello":"WORLD","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr","proxy":{"hello":"WORLD","testing":{"blah":42},"arr":[]}}]
 
 p.arr.push("hello world");   
 // Console log:
-// [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr"}]
+// [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr","proxy":["hello world"]}]
 
 delete p.hello;  
 // Console log:
-// [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"world","currentPath":"hello"}]
+// [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"WORLD","currentPath":"hello","proxy":{"testing":{"blah":42},"arr":["hello world"]}}]
 
 p.arr.splice(0,1);   
 // Console log:
-// [
-// 	{"type":"delete","target":[],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr"}
-// 	,{"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr"}
-// ]
+// [{"type":"delete","target":[null],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr","proxy":[null]},
+//	{"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr","proxy":[]}]
 
 console.log(JSON.stringify(test));   
 // Console log:
