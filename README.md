@@ -11,7 +11,7 @@ http://www.opensource.org/licenses/MIT
 Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object 
 and any nested children of that object. It is intended to assist with state management and one-way 
 data binding. Observable Slim aspires to be as lightweight and simple as possible. Minifies 
-down to roughly 2300 characters.
+down to roughly 3000 characters.
 
 ## Usage
 
