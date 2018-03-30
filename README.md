@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ElliotNB/observable-slim.svg?branch=master)](https://travis-ci.org/ElliotNB/observable-slim)
+
 # Observable Slim
 https://github.com/elliotnb/observable-slim
 
