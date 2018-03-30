@@ -459,3 +459,6 @@ var ObservableSlim = (function() {
 		}
 	};
 })();
+
+// Export in a try catch to prevent this from erroring out on older browsers
+try { module.exports = ObservableSlim; } catch (err) {};
