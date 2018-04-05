@@ -24,6 +24,9 @@ var ObservableSlim = (function() {
 	// 'targets' -- together, the pair offer a Hash table where the key is not a string nor number, but the actual target object
 	var targetsProxy = [];
 	
+	var observableCache = [];
+	var originalObservableCache = null;
+	
 	// this variable tracks duplicate proxies assigned to the same target.
 	// the 'set' handler below will trigger the same change on all other Proxies tracking the same target.
 	// however, in order to avoid an infinite loop of Proxies triggering and re-triggering one another, we use dupProxy
@@ -96,6 +99,10 @@ var ObservableSlim = (function() {
 				if (property === "__isProxy") {
 					return true;
 				
+				} else if (property === "__getTarget") {
+				
+					return target;
+				
 				// from the perspective of a given observable on a parent object, return the parent object of the given nested object
 				} else if (property === "__getParent") {
 					return function(i) {
@@ -108,6 +115,41 @@ var ObservableSlim = (function() {
 				
 				// for performance improvements, we assign this to a variable so we do not have to lookup the property value again
 				var targetProp = target[property];
+				
+				// the logic and need behind this next block of code is a little complicated... we want to support multiple observables on the same target object
+				// and if the target object is modified via one Proxy, then we want *all* observables to be notified of that change -- including on all nested
+				// objects of the original target object. in order to do that, we must create proxies recursively the entire nested target object. we used to complete
+				// that recursive initalization in the public 'create' method, but we found that it was too taxing for very large deeply nested objects on older browsers
+				// like IE11. this section of code now adds the new proxies on nested objects as soon as they are accessed and for *all* other observables that are monitoring
+				// the same object
+				
+				// mark that the current observable has already 'accessed' this property
+				observableCache.push(observable);
+				
+				// if this is the first observable to access the property, then mark this observable as the initiator
+				if (originalObservableCache === null) originalObservableCache = observable;
+				
+				// loop over all other observables that are observing this same object
+				var a = targets.indexOf(target);
+				var targetProxyList = targetsProxy[a];
+				var b = targetProxyList.length;
+				if (b > 1) {
+					while (b--) {
+						// if the other observable watching this same target has not yet accessed this property, then proceed to...
+						if (observableCache.indexOf(targetProxyList[b].observable) === -1) {
+							// ...access the same property on the other proxies, this will trigger the 'get' method which will 
+							// create a new proxy for the object we've just accessed
+							targetProxyList[b].proxy[property];
+						}
+					}
+				}
+				
+				// if we've fully exited out of the recursive 'get' calls and we're back to the original observable that accessed
+				// target[property] then we can reset the observable cache and original observable back to empty
+				if (originalObservableCache === observable) {
+					originalObservableCache = null;
+					observableCache = [];
+				}
 				
 				// if we are traversing into a new object, then we want to record path to that object and return a new observable.
 				// recursively returning a new observable allows us a single Observable.observe() to monitor all changes on 
@@ -342,9 +384,14 @@ var ObservableSlim = (function() {
 		*/
 		create: function(target, domDelay, observer) {
 			
-			// test if the target is a Proxy, if it is, then we should throw an error. we do not allow creating proxies of proxies
-			// because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
-			if (target.__isProxy === true) throw new Error("ObservableSlim.create() cannot create a Proxy for a target object that is also a Proxy.");
+			// test if the target is a Proxy, if it is then we need to retrieve the original object behind the Proxy.
+			// we do not allow creating proxies of proxies because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
+			if (target.__isProxy === true) {
+				var target = target.__getTarget;
+				//if it is, then we should throw an error. we do not allow creating proxies of proxies
+				// because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
+				//throw new Error("ObservableSlim.create() cannot create a Proxy for a target object that is also a Proxy.");
+			}
 			
 			// fire off the _create() method -- it will create a new observable and proxy and return the proxy
 			var proxy = _create(target, domDelay);

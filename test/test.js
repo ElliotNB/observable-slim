@@ -122,4 +122,67 @@ describe('observable-slim.js', _ => {
 		var target = p.hello.blah.foo;
 		expect(target.__getParent().found).to.equal("me");
 	});  
+	
+	it('Multiple observables on same object.', () => {
+		var firstProxy = false;
+		var secondProxy = false;
+		var pp = ObservableSlim.create(test, false, function(changes) { 
+			if (changes[0].currentPath == "dummy" && changes[0].newValue == "foo") {
+				firstProxy = true;
+			}
+		});
+		var ppp = ObservableSlim.create(pp, false, function(changes) { 
+			if (changes[0].currentPath == "dummy" && changes[0].newValue == "foo") {
+				secondProxy = true;
+			}
+		});
+		
+		ppp.dummy = "foo";
+		
+		expect(firstProxy).to.equal(true);
+		expect(secondProxy).to.equal(true);
+	});
+	
+	it('Multiple observables on same object with nested objects.', () => {
+		var firstProxy = false;
+		var secondProxy = false;
+		var testing = {"foo":{"bar":"bar"}};
+		var pp = ObservableSlim.create(testing, false, function(changes) { 
+			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
+				firstProxy = true;
+			}
+		});
+		var ppp = ObservableSlim.create(testing, false, function(changes) { 
+			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
+				secondProxy = true;
+			}
+		});
+		
+		ppp.foo.bar = "foo";
+		
+		expect(firstProxy).to.equal(true);
+		expect(secondProxy).to.equal(true);
+	});
+	
+	it('Multiple observables on same object with nested objects by passing in a Proxy to `create`.', () => {
+		var firstProxy = false;
+		var secondProxy = false;
+		var testing = {"foo":{"bar":"bar"}};
+		var pp = ObservableSlim.create(testing, false, function(changes) { 
+			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
+				firstProxy = true;
+			}
+		});
+		var ppp = ObservableSlim.create(pp, false, function(changes) { 
+			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
+				secondProxy = true;
+			}
+		});
+		
+		ppp.foo.bar = "foo";
+		
+		expect(firstProxy).to.equal(true);
+		expect(secondProxy).to.equal(true);
+	});
+	
 });
