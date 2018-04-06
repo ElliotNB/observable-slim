@@ -98,11 +98,8 @@ var ObservableSlim = (function() {
 				// creating Proxies of Proxies.
 				if (property === "__isProxy") {
 					return true;
-				
 				} else if (property === "__getTarget") {
-				
 					return target;
-				
 				// from the perspective of a given observable on a parent object, return the parent object of the given nested object
 				} else if (property === "__getParent") {
 					return function(i) {
@@ -127,26 +124,26 @@ var ObservableSlim = (function() {
 				observableCache.push(observable);
 				
 				// if this is the first observable to access the property, then mark this observable as the initiator
-				if (originalObservableCache === null) originalObservableCache = observable;
+				if (originalObservableCache === null) {
+					originalObservableCache = observable;
 				
-				// loop over all other observables that are observing this same object
-				var a = targets.indexOf(target);
-				var targetProxyList = targetsProxy[a];
-				var b = targetProxyList.length;
-				if (b > 1) {
-					while (b--) {
-						// if the other observable watching this same target has not yet accessed this property, then proceed to...
-						if (observableCache.indexOf(targetProxyList[b].observable) === -1) {
-							// ...access the same property on the other proxies, this will trigger the 'get' method which will 
-							// create a new proxy for the object we've just accessed
-							targetProxyList[b].proxy[property];
+					// loop over all other observables that are observing this same object
+					var a = targets.indexOf(target);
+					var targetProxyList = targetsProxy[a];
+					var b = targetProxyList.length;
+					if (b > 1) {
+						while (b--) {
+							// if the other observable watching this same target has not yet accessed this property, then proceed to...
+							if (observableCache.indexOf(targetProxyList[b].observable) === -1) {
+								// ...access the same property on the other proxies, this will trigger the 'get' method which will 
+								// create a new proxy for the object we've just accessed
+								targetProxyList[b].proxy[property];
+							}
 						}
 					}
-				}
-				
-				// if we've fully exited out of the recursive 'get' calls and we're back to the original observable that accessed
-				// target[property] then we can reset the observable cache and original observable back to empty
-				if (originalObservableCache === observable) {
+					
+					// once we've fully exited out of the recursive 'get' calls and we're back to the original observable that accessed
+					// target[property] then we can reset the observable cache and original observable back to empty
 					originalObservableCache = null;
 					observableCache = [];
 				}
