@@ -500,7 +500,31 @@ var ObservableSlim = (function() {
 			if (foundMatch === true) {
 				observables.splice(c,1);
 			}
-		}
+		},
+
+        /*	Method: beforeChange
+        		This method accepts a function will be invoked before changes.
+
+			Parameters:
+				proxy 	- the ES6 Proxy returned by the create() method.
+				callback 	- Function, will be invoked before every change is made to the proxy, if it returns false no changes will be made.
+		*/
+        beforeChange: function (proxy, callback) {
+            if (typeof callback !== 'function')
+                throw new Error("Callback function is required");
+
+            var i = observables.length;
+            var foundMatch = false;
+            while (i--) {
+                if (observables[i].proxy === proxy) {
+                    observables[i].beforeChange = callback;
+                    foundMatch = true;
+                    break;
+                }
+            };
+
+            if (foundMatch == false) throw new Error("ObseravableSlim -- matching proxy not found.");
+        }
 	};
 })();
 
