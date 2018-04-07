@@ -184,5 +184,51 @@ describe('observable-slim.js', _ => {
 		expect(firstProxy).to.equal(true);
 		expect(secondProxy).to.equal(true);
 	});
-	
+    it('Before change, try to add a new string property, but returning false.', () => {
+        ObservableSlim.observe(p, function (changes) {
+            expect(changes[0].type).to.equal("add");
+            expect(changes[0].newValue).to.equal("world");
+        });
+
+        ObservableSlim.beforeChange(p, function (changes) {
+            return false;
+        });
+
+        p.hello = "world";
+        expect(p.hello).to.be.an('undefined');
+        expect(test.hello).to.be.an('undefined');
+    });
+
+    it('Before change, try to modify string property value, but returning false.', () => {
+        ObservableSlim.observe(p, function (changes) {
+            expect(changes[0].type).to.equal("update");
+            expect(changes[0].newValue).to.equal("WORLD");
+        });
+
+        ObservableSlim.beforeChange(p, function (changes) {
+            return false;
+        });
+
+        test.hello = "world";
+        p.hello = "WORLD";
+        expect(p.hello).to.equal("world");
+        expect(test.hello).to.equal("world");
+    });
+
+    it('Before change, try to delete a property, but returning false.', () => {
+        ObservableSlim.observe(p, function (changes) {
+            expect(changes[0].type).to.equal("delete");
+            expect(changes[0].property).to.equal("hello");
+        });
+
+        ObservableSlim.beforeChange(p, function (changes) {
+            return false;
+        });
+
+        test.hello = "hello";
+        delete p.hello;
+
+        expect(p.hello).to.equal("hello");
+        expect(test.hello).to.equal("hello");
+    });
 });
