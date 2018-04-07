@@ -191,7 +191,20 @@ var ObservableSlim = (function() {
 				
 				// record the deletion that just took place
 				changes.push({"type":"delete","target":target,"property":property,"newValue":null,"previousValue":previousValue[property],"currentPath":currentPath,"proxy":proxy});
-				
+
+                var t = targets.indexOf(target);
+                if (t > -1) {
+                    var j = targetsProxy[t].length;
+                    while (j--) {
+                        var beforeChange = targetsProxy[t][j].observable.beforeChange;
+                        if(typeof beforeChange === 'function') {
+                            var res = beforeChange(changes);
+                            if (res === false)
+                                return false;
+                        }
+                    }
+                }
+
 				if (originalChange === true) {
 				
 					// if we have already setup a proxy on this target, then...
@@ -344,7 +357,7 @@ var ObservableSlim = (function() {
 					};
 
 					// notify the observer functions that the target has been modified
-					//_notifyObservers(changes.length);
+					_notifyObservers(changes.length);
 					
 				}
 				return true;
