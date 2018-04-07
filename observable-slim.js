@@ -250,7 +250,20 @@ var ObservableSlim = (function() {
 					
 					// store the change that just occurred. it is important that we store the change before invoking the other proxies so that the previousValue is correct
 					changes.push({"type":type,"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath,"proxy":proxy});
-					
+
+                    var t = targets.indexOf(target);
+                    if (t > -1) {
+                        var j = targetsProxy[t].length;
+                        while (j--) {
+                            var beforeChange = targetsProxy[t][j].observable.beforeChange;
+                            if(typeof beforeChange === 'function') {
+                                var res = beforeChange(changes);
+                                if (res === false)
+                                    return false;
+                            }
+                        }
+                    }
+
 					// !!IMPORTANT!! if this proxy was the first proxy to receive the change, then we need to go check and see
 					// if there are other proxies for the same project. if there are, then we will modify those proxies as well so the other
 					// observers can be modified of the change that has occurred.
@@ -331,7 +344,7 @@ var ObservableSlim = (function() {
 					};
 
 					// notify the observer functions that the target has been modified
-					_notifyObservers(changes.length);
+					//_notifyObservers(changes.length);
 					
 				}
 				return true;
