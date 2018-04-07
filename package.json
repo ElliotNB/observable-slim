@@ -2,6 +2,9 @@
     "name": "observable-slim",
     "version": "0.0.1",
     "main": "observable-slim.js",
+    "scripts": {
+        "test": "mocha test"
+    },
     "devDependencies": {
         "babel-preset-es2015": "^6.24.1",
         "babel-register": "^6.26.0",
