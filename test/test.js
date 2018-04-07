@@ -193,7 +193,7 @@ describe('observable-slim.js', _ => {
             expect(changes[0].newValue).to.equal("world");
         });
 
-        ObservableSlim.beforeChange(function (changes) {
+        ObservableSlim.beforeChange(p, function (changes) {
             return false;
         });
 
@@ -208,7 +208,7 @@ describe('observable-slim.js', _ => {
             expect(changes[0].newValue).to.equal("WORLD");
         });
 
-        ObservableSlim.beforeChange(function (changes) {
+        ObservableSlim.beforeChange(p, function (changes) {
             return false;
         });
 
@@ -224,7 +224,7 @@ describe('observable-slim.js', _ => {
             expect(changes[0].property).to.equal("hello");
         });
 
-        ObservableSlim.beforeChange(function (changes) {
+        ObservableSlim.beforeChange(p, function (changes) {
             return false;
         });
 

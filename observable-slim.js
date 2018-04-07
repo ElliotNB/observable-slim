@@ -27,8 +27,6 @@ var ObservableSlim = (function() {
     var observableCache = [];
     var originalObservableCache = null;
 
-    var _beforeChange = function () {};
-
     // this variable tracks duplicate proxies assigned to the same target.
     // the 'set' handler below will trigger the same change on all other Proxies tracking the same target.
     // however, in order to avoid an infinite loop of Proxies triggering and re-triggering one another, we use dupProxy
@@ -194,9 +192,18 @@ var ObservableSlim = (function() {
                 // record the deletion that just took place
                 changes.push({"type":"delete","target":target,"property":property,"newValue":null,"previousValue":previousValue[property],"currentPath":currentPath,"proxy":proxy});
 
-                var res = _beforeChange(changes);
-                if (res === false)
-                	return false;
+                var t = targets.indexOf(target);
+                if (t > -1) {
+                    var j = targetsProxy[t].length;
+                    while (j--) {
+                        var beforeChange = targetsProxy[t][j].observable.beforeChange;
+                        if(typeof beforeChange === 'function') {
+                            var res = beforeChange(changes);
+                            if (res === false)
+                                return false;
+                        }
+                    }
+                }
 
                 if (originalChange === true) {
 
@@ -257,9 +264,18 @@ var ObservableSlim = (function() {
                     // store the change that just occurred. it is important that we store the change before invoking the other proxies so that the previousValue is correct
                     changes.push({"type":type,"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath,"proxy":proxy});
 
-                    var res = _beforeChange(changes);
-                    if (res === false)
-                        return false;
+                    var t = targets.indexOf(target);
+                    if (t > -1) {
+                    	var j = targetsProxy[t].length;
+                        while (j--) {
+                            var beforeChange = targetsProxy[t][j].observable.beforeChange;
+                            if(typeof beforeChange === 'function') {
+                                var res = beforeChange(changes);
+								if (res === false)
+									return false;
+							}
+						}
+					}
 
                     // !!IMPORTANT!! if this proxy was the first proxy to receive the change, then we need to go check and see
                     // if there are other proxies for the same project. if there are, then we will modify those proxies as well so the other
@@ -276,6 +292,7 @@ var ObservableSlim = (function() {
                             while (b--) {
                                 // if the same target has a different proxy
                                 if (currentTargetProxy[b].proxy !== proxy) {
+
 
                                     // !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
                                     // prevent a change on dupProxy from re-triggering the same change on other proxies)
@@ -516,11 +533,24 @@ var ObservableSlim = (function() {
                 This method accepts a function will be invoked before changes.
 
             Parameters:
+            	proxy 	- the ES6 Proxy returned by the create() method.
                 callback 	- Function, will be invoked before every change is made to the proxy, if it returns false no changes will be made.
         */
-        beforeChange: function (callback) {
-        	if (typeof callback === 'function')
-            	_beforeChange = callback;
+        beforeChange: function (proxy, callback) {
+        	if (typeof callback !== 'function')
+                throw new Error("Callback function is required");
+
+            var i = observables.length;
+            var foundMatch = false;
+            while (i--) {
+                if (observables[i].proxy === proxy) {
+                    observables[i].beforeChange = callback;
+                    foundMatch = true;
+                    break;
+                }
+            };
+
+            if (foundMatch == false) throw new Error("ObseravableSlim -- matching proxy not found.");
         }
     };
 })();
