@@ -17,6 +17,18 @@ down to roughly 3000 characters.
 
 ## Usage
 
+
+### Create an observer
+
+The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 Proxy 
+whose changes we can observe. The `create` method accepts three parameters:
+
+1. `target` - Object, required, plain JavaScript object that we want to observe for changes.
+2. `domDelay` - Boolean, required, if true, then Observable Slim will batch up observed changes on a 10ms delay (`setTimeout) so a series of changes can be processed in one DOM update.
+3. `observer` - Function, optional, will be invoked when a change is made to the proxy. When invoked, the `observer` function is passed a single argument -- an array detailing each change that has been made (see below).
+
+The `create` method will return a standard ES6 Proxy.
+
 ```javascript
 var test = {};
 var p = ObservableSlim.create(test, true, function(changes) {
