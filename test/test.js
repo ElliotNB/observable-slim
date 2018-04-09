@@ -5,7 +5,7 @@ global.Proxy = undefined;
 require("../proxy.js");
 global.PolyfillProxy = global.Proxy;
 
-describe('Native proxy', _ => {
+describe('Native Proxy', _ => {
 	suite(global.NativeProxy);
 });
 

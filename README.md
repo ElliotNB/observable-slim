@@ -136,7 +136,20 @@ console.log(proxy.__isProxy); // returns true
 console.log(test.__isProxy); // undefined property
 ```
 
-### Looking up a parent object from a child object
+### Look up the original proxied target object
+
+ObservableSlim allows you to easily fetch a reference to the original object behind a given proxy using the `__getTarget` property:
+
+```javascript
+
+var test = {"hello":{"foo":{"bar":"world"}}};
+var proxy = ObservableSlim.create(test, true, function(changes) {});
+
+console.log(proxy.__getTarget === test); // returns true
+
+```
+
+### Look up a parent object from a child object
 
 ObservableSlim allows you to traverse up from a child object and access the parent object:
 
@@ -156,9 +169,28 @@ traverseUp(proxy.hello.foo);
 ```
 
 
-
 ## Requirements
 
-Observable Slim requires [ES6 Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
+For full functionality, Observable Slim requires [ES6 Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
 
-As of August 2017, ES6 Proxy is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 Proxy. Additionally, there are no polyfills that fully replicate ES6 Proxy functionality in older browsers.
+As of August 2017, ES6 Proxy is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 Proxy.
+
+### ES5 Proxy polyfill (IE11 support) ###
+
+ObservableSlim now offers limited support for ES5 browsers or browsers without native Proxy (most motably IE11) through the integration of a forked version of the [Google Chrome Proxy polyfill](https://github.com/GoogleChrome/proxy-polyfill).
+
+The forked version of the Proxy polyfill (contained within this repo) differs from the original Polyfill by adding support for the array mutation methods: `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, and `reverse`.
+
+#### Limitations ####
+
+Because the Proxy polyfill does not (and will never) fully emulate native ES6 Proxy, there are certain use cases that will not work when using Observable Slim with the Proxy polyfill:
+
+1. Object properties must be known at creation time. New properties cannot be added later.
+2. Modifications to `.length` cannot be observed.
+3. Array re-sizing via a `.length` modification cannot be observed.
+4. Property deletions (e.g., `delete proxy.property;`) cannot be observed.
+
+Array mutations **can** be observed through the use of the array mutation methods listed above.
+
+
+
