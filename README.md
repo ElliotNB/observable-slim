@@ -15,6 +15,18 @@ and any nested children of that object. It is intended to assist with state mana
 data binding. Observable Slim aspires to be as lightweight and simple as possible. Minifies 
 down to roughly 3000 characters.
 
+## Install
+
+```html
+<script src="observable-slim.js"></script>
+```
+
+Also available via NPM:
+
+```
+$ npm install observable-slim
+```
+
 ## Usage
 
 
