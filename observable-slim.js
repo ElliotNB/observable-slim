@@ -14,7 +14,7 @@
 
 
 var ObservableSlim = (function() {
-
+	
 	// An array that stores all of the observables created through the public create() method below.
 	var observables = [];
 	// An array of all the objects that we have assigned Proxies to

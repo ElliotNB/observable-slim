@@ -5,20 +5,19 @@ var useref = require('gulp-useref');
 var rename = require('gulp-rename');
 var mocha = require('gulp-mocha');
 var chai = require('chai');
-var babel = require('babel-register');
+var babel = require('gulp-babel');
 
 gulp.task('default', function(){
-  return gulp.src('observable-slim.js')
-    .pipe(useref())
-    // Minifies only if it's a JavaScript file
-    .pipe(gulpIf(['*.js', '!*.min.js'], uglify()))
+  return gulp.src(['observable-slim.js'])
+	.pipe(useref())
+	// Minifies only if it's a JavaScript file
+	.pipe(uglify())
 	// Add .min to the minified filename
 	.pipe(rename({ suffix: '.min' }))
 	// Write it to the current directory
-    .pipe(gulp.dest('./'))
+	.pipe(gulp.dest('./'))
 });
 
 gulp.task('test', function() {
-	return gulp.src(['test/*.js'])
-.pipe(mocha({compilers:babel}));
+	return gulp.src(['test/test.js']).pipe(mocha({compilers:babel}));
 });
