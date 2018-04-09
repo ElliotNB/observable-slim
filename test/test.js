@@ -1,8 +1,8 @@
 var expect = require('chai').expect;
-var ObservableSlim = require("../observable-slim.min.js");
+var ObservableSlim = require("../observable-slim.js");
 global.NativeProxy = global.Proxy;
 global.Proxy = undefined;
-require("../proxy.min.js");
+require("../proxy.js");
 global.PolyfillProxy = global.Proxy;
 
 describe('Native proxy', _ => {
