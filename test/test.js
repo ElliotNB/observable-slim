@@ -185,9 +185,9 @@ describe('observable-slim.js', _ => {
 		expect(secondProxy).to.equal(true);
 	});
     it('Before change, try to add a new string property, but returning false.', () => {
+        var callbackTriggered = false;
         ObservableSlim.observe(p, function (changes) {
-            expect(changes[0].type).to.equal("add");
-            expect(changes[0].newValue).to.equal("world");
+            callbackTriggered = true;
         });
 
         ObservableSlim.beforeChange(p, function (changes) {
@@ -197,12 +197,13 @@ describe('observable-slim.js', _ => {
         p.hello = "world";
         expect(p.hello).to.be.an('undefined');
         expect(test.hello).to.be.an('undefined');
+        expect(callbackTriggered).to.equal(false);
     });
 
     it('Before change, try to modify string property value, but returning false.', () => {
+        var callbackTriggered = false;
         ObservableSlim.observe(p, function (changes) {
-            expect(changes[0].type).to.equal("update");
-            expect(changes[0].newValue).to.equal("WORLD");
+            callbackTriggered = true;
         });
 
         ObservableSlim.beforeChange(p, function (changes) {
@@ -213,12 +214,13 @@ describe('observable-slim.js', _ => {
         p.hello = "WORLD";
         expect(p.hello).to.equal("world");
         expect(test.hello).to.equal("world");
+        expect(callbackTriggered).to.equal(false);
     });
 
     it('Before change, try to delete a property, but returning false.', () => {
+        var callbackTriggered = false;
         ObservableSlim.observe(p, function (changes) {
-            expect(changes[0].type).to.equal("delete");
-            expect(changes[0].property).to.equal("hello");
+            callbackTriggered = true;
         });
 
         ObservableSlim.beforeChange(p, function (changes) {
@@ -230,5 +232,6 @@ describe('observable-slim.js', _ => {
 
         expect(p.hello).to.equal("hello");
         expect(test.hello).to.equal("hello");
+        expect(callbackTriggered).to.equal(false);
     });
 });
