@@ -1,6 +1,6 @@
 {
   "name": "observable-slim",
-  "description":"Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. It is intended to assist with state management and one-way data binding.",
+  "description": "Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. It is intended to assist with state management and one-way data binding.",
   "version": "0.0.2",
   "main": "observable-slim.js",
   "scripts": {
@@ -31,9 +31,9 @@
     "type": "git",
     "url": "https://github.com/ElliotNB/observable-slim.git"
   },
-  "license":"MIT",
-  "author":"ElliotNB",
-  "homepage":"https://github.com/ElliotNB/observable-slim",
+  "license": "MIT",
+  "author": "ElliotNB",
+  "homepage": "https://github.com/ElliotNB/observable-slim",
   "bugs": {
     "url": "https://github.com/ElliotNB/observable-slim/issues"
   }
