@@ -3,7 +3,7 @@
 # Observable Slim
 https://github.com/elliotnb/observable-slim
 
-Version 0.0.1.
+Version 0.0.2.
 
 Licensed under the MIT license:
 
@@ -15,7 +15,31 @@ and any nested children of that object. It is intended to assist with state mana
 data binding. Observable Slim aspires to be as lightweight and simple as possible. Minifies 
 down to roughly 3000 characters.
 
+## Install
+
+```html
+<script src="observable-slim.js"></script>
+```
+
+Also available via NPM:
+
+```
+$ npm install observable-slim
+```
+
 ## Usage
+
+
+### Create an observer
+
+The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 Proxy 
+whose changes we can observe. The `create` method accepts three parameters:
+
+1. `target` - Object, required, plain JavaScript object that we want to observe for changes.
+2. `domDelay` - Boolean, required, if true, then Observable Slim will batch up observed changes to `target` on a 10ms delay (via `setTimeout`). If false, then `observer` will be immediately invoked after each individual change made to `target`. It is helpful to set `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance).
+3. `observer` - Function, optional, will be invoked when a change is made to the proxy of `target`. When invoked, the `observer` function is passed a single argument -- an array detailing each change that has been made (see below).
+
+The `create` method will return a standard ES6 Proxy.
 
 ```javascript
 var test = {};
@@ -136,7 +160,20 @@ console.log(proxy.__isProxy); // returns true
 console.log(test.__isProxy); // undefined property
 ```
 
-### Looking up a parent object from a child object
+### Look up the original proxied target object
+
+ObservableSlim allows you to easily fetch a reference to the original object behind a given proxy using the `__getTarget` property:
+
+```javascript
+
+var test = {"hello":{"foo":{"bar":"world"}}};
+var proxy = ObservableSlim.create(test, true, function(changes) {});
+
+console.log(proxy.__getTarget === test); // returns true
+
+```
+
+### Look up a parent object from a child object
 
 ObservableSlim allows you to traverse up from a child object and access the parent object:
 
@@ -156,9 +193,28 @@ traverseUp(proxy.hello.foo);
 ```
 
 
-
 ## Requirements
 
-Observable Slim requires [ES6 Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
+For full functionality, Observable Slim requires [ES6 Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
 
-As of August 2017, ES6 Proxy is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 Proxy. Additionally, there are no polyfills that fully replicate ES6 Proxy functionality in older browsers.
+As of August 2017, ES6 Proxy is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 Proxy.
+
+### ES5 Proxy polyfill (IE11 support) ###
+
+ObservableSlim now offers limited support for ES5 browsers or browsers without native Proxy (most motably IE11) through the integration of a forked version of the [Google Chrome Proxy polyfill](https://github.com/GoogleChrome/proxy-polyfill).
+
+The forked version of the Proxy polyfill (contained within this repo) differs from the original Polyfill by adding support for the array mutation methods: `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, and `reverse`.
+
+#### Limitations ####
+
+Because the Proxy polyfill does not (and will never) fully emulate native ES6 Proxy, there are certain use cases that will not work when using Observable Slim with the Proxy polyfill:
+
+1. Object properties must be known at creation time. New properties cannot be added later.
+2. Modifications to `.length` cannot be observed.
+3. Array re-sizing via a `.length` modification cannot be observed.
+4. Property deletions (e.g., `delete proxy.property;`) cannot be observed.
+
+Array mutations **can** be observed through the use of the array mutation methods listed above.
+
+
+

@@ -184,54 +184,5 @@ describe('observable-slim.js', _ => {
 		expect(firstProxy).to.equal(true);
 		expect(secondProxy).to.equal(true);
 	});
-    it('Before change, try to add a new string property, but returning false.', () => {
-        var callbackTriggered = false;
-        ObservableSlim.observe(p, function (changes) {
-            callbackTriggered = true;
-        });
-
-        ObservableSlim.beforeChange(p, function (changes) {
-            return false;
-        });
-
-        p.hello = "world";
-        expect(p.hello).to.be.an('undefined');
-        expect(test.hello).to.be.an('undefined');
-        expect(callbackTriggered).to.equal(false);
-    });
-
-    it('Before change, try to modify string property value, but returning false.', () => {
-        var callbackTriggered = false;
-        ObservableSlim.observe(p, function (changes) {
-            callbackTriggered = true;
-        });
-
-        ObservableSlim.beforeChange(p, function (changes) {
-            return false;
-        });
-
-        test.hello = "world";
-        p.hello = "WORLD";
-        expect(p.hello).to.equal("world");
-        expect(test.hello).to.equal("world");
-        expect(callbackTriggered).to.equal(false);
-    });
-
-    it('Before change, try to delete a property, but returning false.', () => {
-        var callbackTriggered = false;
-        ObservableSlim.observe(p, function (changes) {
-            callbackTriggered = true;
-        });
-
-        ObservableSlim.beforeChange(p, function (changes) {
-            return false;
-        });
-
-        test.hello = "hello";
-        delete p.hello;
-
-        expect(p.hello).to.equal("hello");
-        expect(test.hello).to.equal("hello");
-        expect(callbackTriggered).to.equal(false);
-    });
+	
 });
