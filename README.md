@@ -216,5 +216,6 @@ Because the Proxy polyfill does not (and will never) fully emulate native ES6 Pr
 
 Array mutations **can** be observed through the use of the array mutation methods listed above.
 
+## Contributing
 
-
+Contributions are most welcome! Please be sure to run `gulp test` and `gulp lint` against your code before submitting a pull request.

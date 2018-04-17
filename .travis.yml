@@ -3,8 +3,10 @@ node_js:
   - "node"
   - "8"
 before_script:
-  - npm install -g gulp gulp-cli babel-preset-es2015 babel-register chai expect gulp-if gulp-mocha gulp-rename gulp-uglify gulp-useref
-script: gulp test
+  - npm install
+script: 
+	- gulp test
+	- gulp lint
 cache:
   directories:
     - "node_modules"

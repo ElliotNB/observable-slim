@@ -1,22 +1,24 @@
 {
   "name": "observable-slim",
-  "description":"Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. It is intended to assist with state management and one-way data binding.",
+  "description": "Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. It is intended to assist with state management and one-way data binding.",
   "version": "0.0.2",
   "main": "observable-slim.js",
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-register": "^6.26.0",
-    "chai": "^4.1.2",
-    "expect": "^22.4.3",
-    "gulp": "^3.9.0",
-    "gulp-babel": "^7.0.1",
-    "gulp-if": "^2.0.2",
-    "gulp-mocha": "^5.0.0",
-    "gulp-rename": "^1.2.2",
-    "gulp-uglify": "^3.0.0",
-    "gulp-useref": "^3.1.5",
-    "util": "^0.10.3"
+    "babel-core": "6.26.0",
+    "babel-eslint": "8.2.3",
+    "babel-preset-es2015": "6.24.1",
+    "babel-register": "6.26.0",
+    "chai": "4.1.2",
+    "expect": "22.4.3",
+    "gulp": "3.9.0",
+    "gulp-babel": "7.0.1",
+    "gulp-eslint": "4.0.2",
+    "gulp-if": "2.0.2",
+    "gulp-mocha": "5.0.0",
+    "gulp-rename": "1.2.2",
+    "gulp-uglify": "3.0.0",
+    "gulp-useref": "3.1.5",
+    "util": "0.10.3"
   },
   "babel": {
     "presets": [
@@ -27,9 +29,9 @@
     "type": "git",
     "url": "https://github.com/ElliotNB/observable-slim.git"
   },
-  "license":"MIT",
-  "author":"ElliotNB",
-  "homepage":"https://github.com/ElliotNB/observable-slim",
+  "license": "MIT",
+  "author": "ElliotNB",
+  "homepage": "https://github.com/ElliotNB/observable-slim",
   "bugs": {
     "url": "https://github.com/ElliotNB/observable-slim/issues"
   }
