@@ -5,8 +5,8 @@ node_js:
 before_script:
   - npm install
 script: 
-	- gulp test
-	- gulp lint
+  - gulp test
+  - gulp lint
 cache:
   directories:
     - "node_modules"
