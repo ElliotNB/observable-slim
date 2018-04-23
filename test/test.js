@@ -403,5 +403,31 @@ function suite(proxy) {
 		expect(firstProxy).to.equal(true);
 		expect(secondProxy).to.equal(true);
 	});
+	
+	it('23. Multiple observables on same object with nested objects by passing in a Proxy to `create`.', () => {
+	
+		var firstObservableTriggered = false;
+		var secondObservableTriggered = false;
+		var thirdObservableTriggered = false;
+	
+		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":"tree"};
+		var p = ObservableSlim.create(data, false, function(changes) { firstObservableTriggered = true; });
+		var pp = ObservableSlim.create(p.testing, false, function(changes) { secondObservableTriggered = true; });
+
+		var datatwo = {
+			"hey":"world"
+			,"other_data":p.testing
+		};
+
+		var ppp = ObservableSlim.create(datatwo, false, function(changes) { thirdObservableTriggered = true; });
+
+		p.testing.test.testb = "YOOO";
+		
+		expect(firstObservableTriggered).to.equal(true);
+		expect(secondObservableTriggered).to.equal(true);
+		expect(thirdObservableTriggered).to.equal(true);
+	
+	});
+	
 
 };
