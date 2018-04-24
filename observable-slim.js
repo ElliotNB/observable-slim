@@ -1,6 +1,6 @@
 /*
  * 	Observable Slim
- *	Version 0.0.3
+ *	Version 0.0.1
  * 	https://github.com/elliotnb/observable-slim
  *
  * 	Licensed under the MIT license:
@@ -159,8 +159,11 @@ var ObservableSlim = (function() {
 				
 				if (originalChange === true) {
 				
+					for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
+				
 					// loop over each proxy and see if the target for this change has any other proxies
-					var currentTargetProxy = targetsProxy[targetPosition];
+					var currentTargetProxy = targetsProxy[a];
+
 					var b = currentTargetProxy.length;
 					while (b--) {
 						// if the same target has a different proxy
@@ -216,11 +219,12 @@ var ObservableSlim = (function() {
 					// if there are other proxies for the same project. if there are, then we will modify those proxies as well so the other
 					// observers can be modified of the change that has occurred.
 					if (originalChange === true) {
-							
+						
+						for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
+						
 						// loop over each proxy and see if the target for this change has any other proxies
-						var currentTargetProxy = targetsProxy[targetPosition];
-						var b = currentTargetProxy.length;
-						while (b--) {
+						var currentTargetProxy = targetsProxy[a];
+						for (var b = 0, l = currentTargetProxy.length; b < l; b++) {
 							// if the same target has a different proxy
 							if (currentTargetProxy[b].proxy !== proxy) {
 							
@@ -241,7 +245,7 @@ var ObservableSlim = (function() {
 						// the UI rendering -- there's no need to execute the clean up immediately
 						setTimeout(function() {
 							
-							if (typeof typeOfTargetProp == "object") {							
+							if (typeOfTargetProp === "object" && targetProp !== null) {							
 								
 								// loop over each property and recursively invoke the `iterate` function for any
 								// objects nested on targetProp
@@ -249,12 +253,19 @@ var ObservableSlim = (function() {
 									
 									var keys = Object.keys(obj);
 									for (var i = 0, l = keys.length; i < l; i++) {
-										var objProp = obj[key[i]];
+										var objProp = obj[keys[i]];
 										if (objProp instanceof Object && objProp !== null) iterate(objProp);
 									}
 									
 									// if there are any existing target objects (objects that we're already observing)...
-									var c = targets.indexOf(obj);
+									//var c = targets.indexOf(obj);
+									var c = -1;
+									for (var i = 0, l = targets.length; i < l; i++) {
+										if (obj === targets[i]) {
+											c = i;
+											break;
+										}
+									}
 									if (c > -1) {
 										
 										// ...then we want to determine if the observables for that object match our current observable
