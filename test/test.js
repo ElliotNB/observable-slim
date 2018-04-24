@@ -404,7 +404,7 @@ function suite(proxy) {
 		expect(secondProxy).to.equal(true);
 	});
 	
-	it('23. Multiple observables on same object with nested objects by passing in a Proxy to `create`.', () => {
+	it('23. Multiple observables on same object and a Proxy nested within another object.', () => {
 	
 		var firstObservableTriggered = false;
 		var secondObservableTriggered = false;
@@ -428,6 +428,37 @@ function suite(proxy) {
 		expect(thirdObservableTriggered).to.equal(true);
 	
 	});
+	
+	/* it('24. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
+	
+		var firstObservableTriggered = 0;
+		var secondObservableTriggered = 0;
+		var thirdObservableTriggered = 0;
+	
+		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		var p = ObservableSlim.create(data, false, function(changes) { firstObservableTriggered++; });
+		var pp = ObservableSlim.create(p.testing, false, function(changes) { secondObservableTriggered++; });
+
+		var datatwo = {
+			"hey":"world"
+			,"other_data":p.testing
+			,"new_test":{}
+		};
+
+		var ppp = ObservableSlim.create(datatwo, false, function(changes) { thirdObservableTriggered++; });
+
+		ppp.new_test = p.blah;
+		
+		p.blah.tree = "WORLD";
+		
+		expect(firstObservableTriggered).to.equal(1);
+		expect(secondObservableTriggered).to.equal(0);
+		expect(thirdObservableTriggered).to.equal(2);
+		expect(p.blah.tree).to.equal("WORLD");
+		expect(datatwo.new_test.tree).to.equal("WORLD");
+		expect(ppp.new_test.tree).to.equal("WORLD");
+	
+	}); */
 	
 
 };

@@ -1,6 +1,6 @@
 /*
  * 	Observable Slim
- *	Version 0.0.1
+ *	Version 0.0.3
  * 	https://github.com/elliotnb/observable-slim
  *
  * 	Licensed under the MIT license:
@@ -119,7 +119,15 @@ var ObservableSlim = (function() {
 					if (targetProp.__isProxy === true) targetProp = targetProp.__getTarget;
 					
 					// if we've previously setup a proxy on this target, then...
-					var a = observable.targets.indexOf(targetProp);
+					//var a = observable.targets.indexOf(targetProp);
+					var a = -1;
+					var observableTargets = observable.targets;
+					for (var i = 0, l = observableTargets.length; i < l; i++) {
+						if (targetProp === observableTargets[i]) {
+							a = i;
+							break;
+						}
+					}
 					if (a > -1) return observable.proxies[a];
 					
 					// if we're arrived here, then that means there is no proxy for the object the user just accessed, so we
@@ -233,13 +241,15 @@ var ObservableSlim = (function() {
 						// the UI rendering -- there's no need to execute the clean up immediately
 						setTimeout(function() {
 							
-							if (typeOfTargetProp instanceof Object) {							
+							if (typeof typeOfTargetProp == "object") {							
 								
 								// loop over each property and recursively invoke the `iterate` function for any
 								// objects nested on targetProp
 								(function iterate(obj) {
-									for (var property in obj) {
-										var objProp = obj[property];
+									
+									var keys = Object.keys(obj);
+									for (var i = 0, l = keys.length; i < l; i++) {
+										var objProp = obj[key[i]];
 										if (objProp instanceof Object && objProp !== null) iterate(objProp);
 									}
 									
@@ -276,6 +286,21 @@ var ObservableSlim = (function() {
 						// we need to store the new value on the original target object
 						target[property] = value;
 						
+						// TO DO: the next block of code resolves test case #24, but it results in poor IE11 performance. Find a solution.
+						
+						// if the value we've just set is an object, then we'll need to iterate over it in order to initialize the 
+						// observers/proxies on all nested children of the object
+						/* if (value instanceof Object && value !== null) {
+							(function iterate(proxy) {
+								var target = proxy.__getTarget;
+								var keys = Object.keys(target);
+								for (var i = 0, l = keys.length; i < l; i++) {
+									var property = keys[i];
+									if (target[property] instanceof Object && target[property] !== null) iterate(proxy[property]);
+								};
+							})(proxy[property]);
+						}; */
+						
 					};
 
 					// notify the observer functions that the target has been modified
@@ -301,7 +326,14 @@ var ObservableSlim = (function() {
 		// store the proxy we've created so it isn't re-created unnecessairly via get handler
 		var proxyItem = {"target":target,"proxy":proxy,"observable":observable};
 		
-		var targetPosition = targets.indexOf(target);
+		//var targetPosition = targets.indexOf(target);
+		var targetPosition = -1;
+		for (var i = 0, l = targets.length; i < l; i++) {
+			if (target === targets[i]) {
+				targetPosition = i;
+				break;
+			}
+		}
 		
 		// if we have already created a Proxy for this target object then we add it to the corresponding array 
 		// on targetsProxy (targets and targetsProxy work together as a Hash table indexed by the actual target object).
@@ -352,8 +384,10 @@ var ObservableSlim = (function() {
 			// this will allow the top observable to observe any changes that occur on a nested object
 			(function iterate(proxy) {
 				var target = proxy.__getTarget;
-				for (var property in target) {
-					if (target[property] instanceof Object && target[property] !== null && target.hasOwnProperty(property)) iterate(proxy[property]);
+				var keys  = Object.keys(target);
+				for (var i = 0, l = keys.length; i < l; i++) {
+					var property = keys[i];
+					if (target[property] instanceof Object && target[property] !== null) iterate(proxy[property]);
 				}
 			})(proxy);
 			
