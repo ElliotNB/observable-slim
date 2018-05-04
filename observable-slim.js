@@ -1,6 +1,6 @@
 /*
  * 	Observable Slim
- *	Version 0.0.1
+ *	Version 0.0.4
  * 	https://github.com/elliotnb/observable-slim
  *
  * 	Licensed under the MIT license:
@@ -11,8 +11,6 @@
  *	reflecting changes in the model to the view. Observable Slim aspires to be as lightweight and easily
  *	understood as possible. Minifies down to roughly 3000 characters.
  */
-
-
 var ObservableSlim = (function() {
 	
 	// An array that stores all of the observables created through the public create() method below.
@@ -240,12 +238,24 @@ var ObservableSlim = (function() {
 						}
 						
 						// if the property being overwritten is an object, then that means this observable
-						// will need to stop monitoring this object and any nested objects underneath else they'll become
+						// will need to stop monitoring this object and any nested objects underneath the overwritten object else they'll become
 						// orphaned and grow memory usage. we excute this on a setTimeout so that the clean-up process does not block
 						// the UI rendering -- there's no need to execute the clean up immediately
 						setTimeout(function() {
 							
 							if (typeOfTargetProp === "object" && targetProp !== null) {							
+								
+								// check if the to-be-overwritten target property still exists on the target object
+								// if it does still exist on the object, then we don't want to stop observing it. this resolves
+								// an issue where array .sort() triggers objects to be overwritten, but instead of being overwritten
+								// and discarded, they are shuffled to a new position in the array
+								var keys = Object.keys(target);
+								for (var i = 0, l = keys.length; i < l; i++) {
+									if (target[keys[i]] === targetProp) {
+										console.log('target still exists');
+										return;
+									}
+								}
 								
 								// loop over each property and recursively invoke the `iterate` function for any
 								// objects nested on targetProp

@@ -3,7 +3,7 @@
 # Observable Slim
 https://github.com/elliotnb/observable-slim
 
-Version 0.0.3
+Version 0.0.4
 
 Licensed under the MIT license:
 
