@@ -1,6 +1,6 @@
 /*
  * 	Observable Slim
- *	Version 0.0.4
+ *	Version 0.0.5
  * 	https://github.com/elliotnb/observable-slim
  *
  * 	Licensed under the MIT license:
@@ -201,6 +201,8 @@ var ObservableSlim = (function() {
 				// only record a change if the new value differs from the old one OR if this proxy was not the original proxy to receive the change
 				if (targetProp !== value || originalChange === false) {
 				
+					var foundObservable = true;
+				
 					var typeOfTargetProp = (typeof targetProp);
 				
 					// get the path of the object property being modified
@@ -220,95 +222,100 @@ var ObservableSlim = (function() {
 						
 						for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
 						
-						// loop over each proxy and see if the target for this change has any other proxies
-						var currentTargetProxy = targetsProxy[a];
-						for (var b = 0, l = currentTargetProxy.length; b < l; b++) {
-							// if the same target has a different proxy
-							if (currentTargetProxy[b].proxy !== proxy) {
-							
-								// !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
-								// prevent a change on dupProxy from re-triggering the same change on other proxies)
-								dupProxy = currentTargetProxy[b].proxy;
-								
-								// invoke the same change on the different proxy for the same target object. it is important that we make this change *after* we invoke the same change
-								// on any other proxies so that the previousValue can show up correct for the other proxies
-								currentTargetProxy[b].proxy[property] = value;
-							
-							}
-						}
+						foundObservable = (a < l);
 						
-						// if the property being overwritten is an object, then that means this observable
-						// will need to stop monitoring this object and any nested objects underneath the overwritten object else they'll become
-						// orphaned and grow memory usage. we excute this on a setTimeout so that the clean-up process does not block
-						// the UI rendering -- there's no need to execute the clean up immediately
-						setTimeout(function() {
-							
-							if (typeOfTargetProp === "object" && targetProp !== null) {							
+						// if we didn't find an observable for this proxy, then that means .remove(proxy) was likely invoked
+						// so we no longer need to notify any observer function about the changes, but we still need to update the
+						// value of the underlying original objectm see below: target[property] = value;
+						if (foundObservable) {
+						
+							// loop over each proxy and see if the target for this change has any other proxies
+							var currentTargetProxy = targetsProxy[a];
+							for (var b = 0, l = currentTargetProxy.length; b < l; b++) {
+								// if the same target has a different proxy
+								if (currentTargetProxy[b].proxy !== proxy) {
 								
-								// check if the to-be-overwritten target property still exists on the target object
-								// if it does still exist on the object, then we don't want to stop observing it. this resolves
-								// an issue where array .sort() triggers objects to be overwritten, but instead of being overwritten
-								// and discarded, they are shuffled to a new position in the array
-								var keys = Object.keys(target);
-								for (var i = 0, l = keys.length; i < l; i++) {
-									if (target[keys[i]] === targetProp) {
-										console.log('target still exists');
-										return;
-									}
+									// !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
+									// prevent a change on dupProxy from re-triggering the same change on other proxies)
+									dupProxy = currentTargetProxy[b].proxy;
+									
+									// invoke the same change on the different proxy for the same target object. it is important that we make this change *after* we invoke the same change
+									// on any other proxies so that the previousValue can show up correct for the other proxies
+									currentTargetProxy[b].proxy[property] = value;
+								
 								}
+							}
+							
+							// if the property being overwritten is an object, then that means this observable
+							// will need to stop monitoring this object and any nested objects underneath the overwritten object else they'll become
+							// orphaned and grow memory usage. we excute this on a setTimeout so that the clean-up process does not block
+							// the UI rendering -- there's no need to execute the clean up immediately
+							setTimeout(function() {
 								
-								// loop over each property and recursively invoke the `iterate` function for any
-								// objects nested on targetProp
-								(function iterate(obj) {
+								if (typeOfTargetProp === "object" && targetProp !== null) {							
 									
-									var keys = Object.keys(obj);
+									// check if the to-be-overwritten target property still exists on the target object
+									// if it does still exist on the object, then we don't want to stop observing it. this resolves
+									// an issue where array .sort() triggers objects to be overwritten, but instead of being overwritten
+									// and discarded, they are shuffled to a new position in the array
+									var keys = Object.keys(target);
 									for (var i = 0, l = keys.length; i < l; i++) {
-										var objProp = obj[keys[i]];
-										if (objProp instanceof Object && objProp !== null) iterate(objProp);
+										if (target[keys[i]] === targetProp) return;
 									}
 									
-									// if there are any existing target objects (objects that we're already observing)...
-									//var c = targets.indexOf(obj);
-									var c = -1;
-									for (var i = 0, l = targets.length; i < l; i++) {
-										if (obj === targets[i]) {
-											c = i;
-											break;
+									// loop over each property and recursively invoke the `iterate` function for any
+									// objects nested on targetProp
+									(function iterate(obj) {
+										
+										var keys = Object.keys(obj);
+										for (var i = 0, l = keys.length; i < l; i++) {
+											var objProp = obj[keys[i]];
+											if (objProp instanceof Object && objProp !== null) iterate(objProp);
 										}
-									}
-									if (c > -1) {
 										
-										// ...then we want to determine if the observables for that object match our current observable
-										var currentTargetProxy = targetsProxy[c];
-										var d = currentTargetProxy.length;
-										
-										while (d--) {
-											// if we do have an observable monitoring the object thats about to be overwritten
-											// then we can remove that observable from the target object
-											if (observable === currentTargetProxy[d].observable) {
-												currentTargetProxy.splice(d,1);
+										// if there are any existing target objects (objects that we're already observing)...
+										//var c = targets.indexOf(obj);
+										var c = -1;
+										for (var i = 0, l = targets.length; i < l; i++) {
+											if (obj === targets[i]) {
+												c = i;
 												break;
 											}
 										}
-										
-										// if there are no more observables assigned to the target object, then we can remove
-										// the target object altogether. this is necessary to prevent growing memory consumption particularly with large data sets
-										if (currentTargetProxy.length == 0) {
-											targetsProxy.splice(c,1);
-											targets.splice(c,1);
+										if (c > -1) {
+											
+											// ...then we want to determine if the observables for that object match our current observable
+											var currentTargetProxy = targetsProxy[c];
+											var d = currentTargetProxy.length;
+											
+											while (d--) {
+												// if we do have an observable monitoring the object thats about to be overwritten
+												// then we can remove that observable from the target object
+												if (observable === currentTargetProxy[d].observable) {
+													currentTargetProxy.splice(d,1);
+													break;
+												}
+											}
+											
+											// if there are no more observables assigned to the target object, then we can remove
+											// the target object altogether. this is necessary to prevent growing memory consumption particularly with large data sets
+											if (currentTargetProxy.length == 0) {
+												targetsProxy.splice(c,1);
+												targets.splice(c,1);
+											}
 										}
-									}
 
-								})(targetProp)
-							}
-						},10000);
+									})(targetProp)
+								}
+							},10000);
+						}
 						
 						// because the value actually differs than the previous value
 						// we need to store the new value on the original target object
 						target[property] = value;
 						
 						// TO DO: the next block of code resolves test case #24, but it results in poor IE11 performance. Find a solution.
-						
+						//
 						// if the value we've just set is an object, then we'll need to iterate over it in order to initialize the 
 						// observers/proxies on all nested children of the object
 						/* if (value instanceof Object && value !== null) {
@@ -324,8 +331,10 @@ var ObservableSlim = (function() {
 						
 					};
 
-					// notify the observer functions that the target has been modified
-					_notifyObservers(changes.length);
+					if (foundObservable) {
+						// notify the observer functions that the target has been modified
+						_notifyObservers(changes.length);
+					}
 					
 				}
 				return true;
@@ -505,7 +514,7 @@ var ObservableSlim = (function() {
 				while (b--) {
 					if (targetsProxy[a][b].observable === matchedObservable) {
 						targetsProxy[a].splice(b,1);
-						if (targetsProxy[a].length == 0) {
+						if (targetsProxy[a].length === 0) {
 							targetsProxy.splice(a,1);
 							targets.splice(a,1);
 						};

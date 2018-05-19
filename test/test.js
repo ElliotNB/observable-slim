@@ -1,15 +1,19 @@
-var expect = require('chai').expect;
+var chai = require('chai');
+var expect = chai.expect;
+var assert = chai.assert;
 var ObservableSlim = require("../observable-slim.js");
 global.NativeProxy = global.Proxy;
 global.Proxy = undefined;
 require("../proxy.js");
 global.PolyfillProxy = global.Proxy;
 
-describe('Native Proxy', _ => {
+describe('Native Proxy', function() {
+	this.timeout(11000);
 	suite(global.NativeProxy);
 });
 
-describe('ES5 Polyfill Proxy', _ => {
+describe('ES5 Polyfill Proxy', function() {
+	this.timeout(11000);
 	suite(global.PolyfillProxy);
 });
 
@@ -45,6 +49,21 @@ function suite(proxy) {
 		p.hello = "WORLD";
 		expect(p.hello).to.equal("WORLD");
 		expect(test.hello).to.equal("WORLD");
+	});
+	
+	it('2. Modify string property value with DOM delay included.', (done) => {
+		var test = {"hello":""};
+		var p = ObservableSlim.create(test, true, function(changes) { 
+			expect(changes[0].type).to.equal("update");
+			expect(changes[0].newValue).to.equal("WORLD");
+		});
+		
+		p.hello = "WORLD";
+		setTimeout(function() {
+			expect(p.hello).to.equal("WORLD");
+			expect(test.hello).to.equal("WORLD");
+			done();
+		},100);
 	});
 
 	it('3. Add a new object property (not supported with ES5 polyfill).', () => {
@@ -308,7 +327,7 @@ function suite(proxy) {
 	
 	it('16. Delete a property (not supported with ES5 polyfill).', () => {
 		if (global.Proxy === global.NativeProxy) {
-			ObservableSlim.observe(p, function(changes) {
+			ObservableSlim.create(test, function(changes) {
 				expect(changes[0].type).to.equal("delete");
 				expect(changes[0].property).to.equal("hello");
 			});
@@ -429,7 +448,7 @@ function suite(proxy) {
 	
 	});
 	
-	/* it('24. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
+	it.skip('24. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
 	
 		var firstObservableTriggered = 0;
 		var secondObservableTriggered = 0;
@@ -458,7 +477,70 @@ function suite(proxy) {
 		expect(datatwo.new_test.tree).to.equal("WORLD");
 		expect(ppp.new_test.tree).to.equal("WORLD");
 	
-	}); */
+	});
+	
+	it('25. Create an observable and then remove it.', () => {
+	
+		var observed = false;
+		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		var p = ObservableSlim.create(data, false, function(changes) { 
+			console.log(changes);
+			observed = true; 
+		});
+		
+		// try removing a proxy that doesn't exist, ensure no errors
+		ObservableSlim.remove({});
+		
+		ObservableSlim.remove(p);
+		
+		p.testing.test.testb = "HELLO WORLD";
+		
+		expect(observed).to.equal(false);
+	
+	});
+	
+	
+	it('26. Pause and resume observables.', () => {
+	
+		var changeCount = 0;
+		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		var p = ObservableSlim.create(data, false, function(changes) { changeCount++; });
+		
+		// try resuming an object that's not a proxy, it should throw an error
+		assert(function() { ObservableSlim.pause({}); }, Error, "ObseravableSlim could not pause observable -- matching proxy not found.");
+		
+		ObservableSlim.pause(p);
+		
+		p.testing.test.testb = "HELLO WORLD";
+		
+		// try resuming an object that's not a proxy, it should throw an error
+		assert(function() { ObservableSlim.resume({}); }, Error, "ObseravableSlim could not resume observable -- matching proxy not found.");
+		
+		ObservableSlim.resume(p);
+		
+		p.testing.test.testb = "HELLO WORLD2";
+		
+		expect(changeCount).to.equal(1);
+	
+	});
+	
+	
+	// This test currently does not have an expectation or assertion. For now it simply
+	// ensures that the garbage clean-up code runs and that the garbage clean-up doesn't throw an error.
+ 	it('27. Clean-up observers of overwritten (orphaned) objects.', (done) => {
+
+		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		var p = ObservableSlim.create(data, false, function(changes) { 
+			return null;
+		});
+	
+		p.testing = {};
+	
+		setTimeout(function() {
+			done();
+		},10000);
+	
+	});
 	
 
 };
