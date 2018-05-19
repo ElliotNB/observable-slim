@@ -1,0 +1,7 @@
+instrumentation:
+    root: .
+    extensions:
+        - .js
+    default-excludes: true
+    excludes: ['proxy.js','**min.js','gulpfile.js']
+    include-all-sources: true
