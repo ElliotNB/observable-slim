@@ -56,12 +56,28 @@ var ObservableSlim = (function() {
 		
 		var changes = [];
 		
-		var _getPath = function(target, property) {
+		/*	Function: _getPath
+				Returns a string of the nested path (in relation to the top-level observed object) 
+				of the property being modified or deleted.
+			Parameters:
+				target - the object whose property is being modified or deleted.
+				property - the string name of the property
+				jsonPointer - optional, set to true if the string path should be formatted as a JSON pointer.
+			
+			Returns:
+				String of the nested path (e.g., hello.testing.1.bar or, if JSON pointer, /hello/testing/1/bar
+		*/
+		var _getPath = function(target, property, jsonPointer) {
+			var fullPath = null;
 			if (target instanceof Array) {
-				return (path !== "") ? (path) : property;
+				fullPath = (path !== "") ? (path) : property;
 			} else {
-				return (path !== "") ? (path + "." + property) : property;
+				fullPath = (path !== "") ? (path + "." + property) : property;
 			}
+			
+			if (jsonPointer === true) fullPath = "/" + fullPath.replace(/\./g, "/");
+			
+			return fullPath;
 		};
 		
 		var _notifyObservers = function(numChanges) {
@@ -148,12 +164,18 @@ var ObservableSlim = (function() {
 				
 				// in order to report what the previous value was, we must make a copy of it before it is deleted
 				var previousValue = Object.assign({}, target);
- 
-				// get the path of the property being deleted
-				var currentPath = _getPath(target, property);
 				
 				// record the deletion that just took place
-				changes.push({"type":"delete","target":target,"property":property,"newValue":null,"previousValue":previousValue[property],"currentPath":currentPath,"proxy":proxy});
+				changes.push({
+					"type":"delete"
+					,"target":target
+					,"property":property
+					,"newValue":null
+					,"previousValue":previousValue[property]
+					,"currentPath":_getPath(target, property)
+					,"jsonPointer":_getPath(target, property, true)
+					,"proxy":proxy
+				});
 				
 				if (originalChange === true) {
 				
@@ -204,16 +226,22 @@ var ObservableSlim = (function() {
 					var foundObservable = true;
 				
 					var typeOfTargetProp = (typeof targetProp);
-				
-					// get the path of the object property being modified
-					var currentPath = _getPath(target, property);
 					
 					// determine if we're adding something new or modifying somethat that already existed
 					var type = "update";
 					if (typeOfTargetProp === "undefined") type = "add";
 					
 					// store the change that just occurred. it is important that we store the change before invoking the other proxies so that the previousValue is correct
-					changes.push({"type":type,"target":target,"property":property,"newValue":value,"previousValue":receiver[property],"currentPath":currentPath,"proxy":proxy});
+					changes.push({
+						"type":type
+						,"target":target
+						,"property":property
+						,"newValue":value
+						,"previousValue":receiver[property]
+						,"currentPath":_getPath(target, property)
+						,"jsonPointer":_getPath(target, property, true)
+						,"proxy":proxy
+					});
 					
 					// !!IMPORTANT!! if this proxy was the first proxy to receive the change, then we need to go check and see
 					// if there are other proxies for the same project. if there are, then we will modify those proxies as well so the other

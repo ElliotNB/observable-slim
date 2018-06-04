@@ -65,8 +65,23 @@ function suite(proxy) {
 			done();
 		},100);
 	});
+	
+	it('3. Modify a deeply nested array item.', () => {
+		var test = {"hello":{"testing":{"foo":["testing",{"stuff":"hey"},"here"]}}};
+		var p = ObservableSlim.create(test, false, function(changes) { 
+		
+			expect(changes[0].type).to.equal("update");
+			expect(changes[0].newValue).to.equal("WORLD");
+			expect(changes[0].currentPath).to.equal("hello.testing.foo.1.stuff");
+			expect(changes[0].jsonPointer).to.equal("/hello/testing/foo/1/stuff");
+		});
+		
+		p.hello.testing.foo[1].stuff = "WORLD";
+		expect(p.hello.testing.foo[1].stuff).to.equal("WORLD");
+		expect(test.hello.testing.foo[1].stuff).to.equal("WORLD");
+	});
 
-	it('3. Add a new object property (not supported with ES5 polyfill).', () => {
+	it('4. Add a new object property (not supported with ES5 polyfill).', () => {
 		if (global.Proxy === global.NativeProxy) {	
 			ObservableSlim.observe(p, function(changes) {
 				expect(changes[0].type).to.equal("add");
@@ -78,7 +93,7 @@ function suite(proxy) {
 		}
 	});
 	
-	it('4. Set property equal to object.', () => {
+	it('5. Set property equal to object.', () => {
 		var test = {"testing":false};
 		var p = ObservableSlim.create(test, false, function(changes) { 
 			expect(changes[0].type).to.equal("update");
@@ -89,7 +104,7 @@ function suite(proxy) {
 		expect(test.testing).to.be.an.instanceof(Object);
 	});
 
-	it('5. Add a new nested number property (not supported with ES5 polyfill).', () => {
+	it('6. Add a new nested number property (not supported with ES5 polyfill).', () => {
 		if (global.Proxy === global.NativeProxy) {
 			ObservableSlim.observe(p, function(changes) {
 				expect(changes[0].type).to.equal("add");
@@ -103,7 +118,7 @@ function suite(proxy) {
 		}
 	});
 
-	it('6. Update nested number property.', () => {
+	it('7. Update nested number property.', () => {
 		var test = {};
 		test.testing = {};
 		test.testing.blah = 0;
@@ -117,7 +132,7 @@ function suite(proxy) {
 		expect(test.testing.blah).to.be.equal(42);
 	});
 	
-	it('7. Set property as a new array.', () => {
+	it('8. Set property as a new array.', () => {
 		var test = {"arr":false};
 		var p = ObservableSlim.create(test, false, function(changes) {
 			expect(changes[0].type).to.equal("update");
@@ -128,7 +143,7 @@ function suite(proxy) {
 		expect(test.arr).to.be.an.instanceof(Array);
 	});
 	
-	it('8. Add a new array property (not supported with ES5 polyfill).', () => {
+	it('9. Add a new array property (not supported with ES5 polyfill).', () => {
 		if (global.Proxy === global.NativeProxy) {
 			ObservableSlim.observe(p, function(changes) {
 				expect(changes[0].type).to.equal("add");
@@ -140,7 +155,7 @@ function suite(proxy) {
 		}
 	});
 
-	it('9. Push item on to an array.', () => {
+	it('10. Push item on to an array.', () => {
 		var test = {"arr":[]};
 		var p = ObservableSlim.create(test, false, function(changes) {
 			expect(changes[0].type).to.equal("add");
@@ -154,7 +169,7 @@ function suite(proxy) {
 		expect(test.arr[0]).to.equal("hello world");
 	});
 	
-	it('10. Unshift item to an array.', () => {
+	it('11. Unshift item to an array.', () => {
 		var change = 0;
 		var test = {"arr":["foo bar"]};
 		var p = ObservableSlim.create(test, false, function(changes) {
@@ -181,7 +196,7 @@ function suite(proxy) {
 		expect(length).to.equal(2);
 	});
 	
-	it('11. Pop an item from an array.', () => {
+	it('12. Pop an item from an array.', () => {
 		var change = 0;
 		var test = {"arr":["hello world","foo bar"]};
 		var p = ObservableSlim.create(test, false, function(changes) {			
@@ -215,7 +230,7 @@ function suite(proxy) {
 		expect(popLastSame).to.equal(true);
 	});
 
-	it('12. Splice first item from an array.', () => {
+	it('13. Splice first item from an array.', () => {
 		var change = 0;
 		var test = {};
 		test.arr = [];
@@ -236,7 +251,7 @@ function suite(proxy) {
 		expect(p.arr.length).to.equal(0);
 	});
 	
-	it('13. Insert item into an array using splice.', () => {
+	it('14. Insert item into an array using splice.', () => {
 		var change = 0;
 		var test = {"arr":["hello world","foo bar","sunday","sunday"]};
 		var p = ObservableSlim.create(test, false, function(changes) {
@@ -271,7 +286,7 @@ function suite(proxy) {
 		expect(val.length).to.equal(0);
 	});
 	
-	it('14. Insert new item and remove two items from an array using splice.', () => {
+	it('15. Insert new item and remove two items from an array using splice.', () => {
 		var change = 0;
 		var test = {"arr":["hello world","foo bar","sunday","tuesday"]};
 		var p = ObservableSlim.create(test, false, function(changes) {});
@@ -290,7 +305,7 @@ function suite(proxy) {
 		
 	});
 	
-	it('15. Shift the first item off an array.', () => {
+	it('16. Shift the first item off an array.', () => {
 		var change = 0;
 		var test = {"arr":["foo bar","hello world"]};
 		var p = ObservableSlim.create(test, false, function(changes) {
@@ -325,7 +340,7 @@ function suite(proxy) {
 		expect(removedItem).to.equal("foo bar");
 	});
 	
-	it('16. Delete a property (not supported with ES5 polyfill).', () => {
+	it('17. Delete a property (not supported with ES5 polyfill).', () => {
 		if (global.Proxy === global.NativeProxy) {
 			ObservableSlim.create(test, function(changes) {
 				expect(changes[0].type).to.equal("delete");
@@ -340,17 +355,17 @@ function suite(proxy) {
 		}
 	});
 
-	it('17. __isProxy check', () => {
+	it('18. __isProxy check', () => {
 		expect(p.__isProxy).to.be.equal(true);
 	});
 	
-	it('18. __getTarget check', () => {
+	it('19. __getTarget check', () => {
 		var isSameObject = false;
 		if (p.__getTarget === test) isSameObject = true;
 		expect(isSameObject).to.be.equal(true);
 	});
 	
-	it('19. __getParent on nested object (not supported with ES5 polyfill).', () => {
+	it('20. __getParent on nested object (not supported with ES5 polyfill).', () => {
 		if (global.Proxy === global.NativeProxy) {
 			p.hello = {};
 			p.hello.blah = {"found":"me"};
@@ -360,7 +375,7 @@ function suite(proxy) {
 		}
 	});
 	
-	it('20. Multiple observables on same object.', () => {
+	it('21. Multiple observables on same object.', () => {
 		var test = {"dummy":"blah"};
 		var firstProxy = false;
 		var secondProxy = false;
@@ -381,7 +396,7 @@ function suite(proxy) {
 		expect(secondProxy).to.equal(true);
 	});
 	
-	it('21. Multiple observables on same object with nested objects.', () => {
+	it('22. Multiple observables on same object with nested objects.', () => {
 		var firstProxy = false;
 		var secondProxy = false;
 		var testing = {"foo":{"bar":"bar"}};
@@ -402,7 +417,7 @@ function suite(proxy) {
 		expect(secondProxy).to.equal(true);
 	});
 	
-	it('22. Multiple observables on same object with nested objects by passing in a Proxy to `create`.', () => {
+	it('23. Multiple observables on same object with nested objects by passing in a Proxy to `create`.', () => {
 		var firstProxy = false;
 		var secondProxy = false;
 		var testing = {"foo":{"bar":"bar"}};
@@ -423,7 +438,7 @@ function suite(proxy) {
 		expect(secondProxy).to.equal(true);
 	});
 	
-	it('23. Multiple observables on same object and a Proxy nested within another object.', () => {
+	it('24. Multiple observables on same object and a Proxy nested within another object.', () => {
 	
 		var firstObservableTriggered = false;
 		var secondObservableTriggered = false;
@@ -448,7 +463,7 @@ function suite(proxy) {
 	
 	});
 	
-	it.skip('24. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
+	it.skip('25. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
 	
 		var firstObservableTriggered = 0;
 		var secondObservableTriggered = 0;
@@ -479,12 +494,11 @@ function suite(proxy) {
 	
 	});
 	
-	it('25. Create an observable and then remove it.', () => {
+	it('26. Create an observable and then remove it.', () => {
 	
 		var observed = false;
 		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
 		var p = ObservableSlim.create(data, false, function(changes) { 
-			console.log(changes);
 			observed = true; 
 		});
 		
@@ -500,7 +514,7 @@ function suite(proxy) {
 	});
 	
 	
-	it('26. Pause and resume observables.', () => {
+	it('27. Pause and resume observables.', () => {
 	
 		var changeCount = 0;
 		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
@@ -527,7 +541,7 @@ function suite(proxy) {
 	
 	// This test currently does not have an expectation or assertion. For now it simply
 	// ensures that the garbage clean-up code runs and that the garbage clean-up doesn't throw an error.
- 	it('27. Clean-up observers of overwritten (orphaned) objects.', (done) => {
+ 	it('28. Clean-up observers of overwritten (orphaned) objects.', (done) => {
 
 		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
 		var p = ObservableSlim.create(data, false, function(changes) { 
