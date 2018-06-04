@@ -3,7 +3,7 @@
 # Observable Slim
 https://github.com/elliotnb/observable-slim
 
-Version 0.0.5
+Version 0.0.6
 
 Licensed under the MIT license:
 
@@ -49,36 +49,36 @@ var p = ObservableSlim.create(test, true, function(changes) {
 
 p.hello = "world";   
 // Console log:
-// [{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello","proxy":{"hello":"world"}}]
+// [{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello",jsonPointer:"/hello","proxy":{"hello":"world"}}]
 
 p.hello = "WORLD";
 // Console log:
-// [{"type":"update","target":{"hello":"WORLD"},"property":"hello","newValue":"WORLD","previousValue":"world","currentPath":"hello","proxy":{"hello":"WORLD"}}]
+// [{"type":"update","target":{"hello":"WORLD"},"property":"hello","newValue":"WORLD","previousValue":"world","currentPath":"hello",jsonPointer:"/hello","proxy":{"hello":"WORLD"}}]
 
 p.testing = {};   
 // Console log:
-// [{"type":"add","target":{"hello":"WORLD","testing":{}},"property":"testing","newValue":{},"currentPath":"testing","proxy":{"hello":"WORLD","testing":{}}}]
+// [{"type":"add","target":{"hello":"WORLD","testing":{}},"property":"testing","newValue":{},"currentPath":"testing",jsonPointer:"/testing","proxy":{"hello":"WORLD","testing":{}}}]
 
 p.testing.blah = 42;   
 // Console log:
-// [{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah","proxy":{"blah":42}}]
+// [{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah",jsonPointer:"/testing/blah","proxy":{"blah":42}}]
 
 p.arr = [];   
 // Console log:
-// [{"type":"add","target":{"hello":"WORLD","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr","proxy":{"hello":"WORLD","testing":{"blah":42},"arr":[]}}]
+// [{"type":"add","target":{"hello":"WORLD","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr",jsonPointer:"/arr","proxy":{"hello":"WORLD","testing":{"blah":42},"arr":[]}}]
 
 p.arr.push("hello world");   
 // Console log:
-// [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr","proxy":["hello world"]}]
+// [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr",jsonPointer:"/arr","proxy":["hello world"]}]
 
 delete p.hello;  
 // Console log:
-// [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"WORLD","currentPath":"hello","proxy":{"testing":{"blah":42},"arr":["hello world"]}}]
+// [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"WORLD","currentPath":"hello",jsonPointer:"/hello","proxy":{"testing":{"blah":42},"arr":["hello world"]}}]
 
 p.arr.splice(0,1);   
 // Console log:
-// [{"type":"delete","target":[null],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr","proxy":[null]},
-//	{"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr","proxy":[]}]
+// [{"type":"delete","target":[null],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr",jsonPointer:"/arr","proxy":[null]},
+//	{"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr",jsonPointer:"/arr","proxy":[]}]
 
 console.log(JSON.stringify(test));   
 // Console log:
