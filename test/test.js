@@ -537,11 +537,38 @@ function suite(proxy) {
 		expect(changeCount).to.equal(1);
 	
 	});
+
+
+	it('28. Pause and resume changes on observables', () => {
+
+		var changeCount = 0;
+		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		var p = ObservableSlim.create(data, false, function(changes) { changeCount++; });
+
+		// try resuming an object that's not a proxy, it should throw an error
+		assert(function() { ObservableSlim.pauseChanges({}); }, Error, "ObseravableSlim could not pause changes on observable -- matching proxy not found.");
+
+		ObservableSlim.pauseChanges(p);
+
+		p.testing.test.testb = "HELLO WORLD";
+		expect(p.testing.test.testb).to.equal("hello world"); // Because changes are disabled here
+
+		// try resuming an object that's not a proxy, it should throw an error
+		assert(function() { ObservableSlim.resumeChanges({}); }, Error, "ObseravableSlim could not resume changes on observable -- matching proxy not found.");
+
+		ObservableSlim.resumeChanges(p);
+
+		p.testing.test.testb = "HELLO WORLD";
+		expect(p.testing.test.testb).to.equal("HELLO WORLD"); // Because changes are enabled here
+
+		expect(changeCount).to.equal(2);
+
+	});
 	
 	
 	// This test currently does not have an expectation or assertion. For now it simply
 	// ensures that the garbage clean-up code runs and that the garbage clean-up doesn't throw an error.
- 	it('28. Clean-up observers of overwritten (orphaned) objects.', (done) => {
+ 	it('29. Clean-up observers of overwritten (orphaned) objects.', (done) => {
 
 		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
 		var p = ObservableSlim.create(data, false, function(changes) { 

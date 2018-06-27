@@ -136,6 +136,23 @@ To resume the execution of observer functions:
 ObservableSlim.resume(proxy);
 ```
 
+### Pause changes
+
+If you wish to pause changes to the target data without pausing the execution of the observer functions, you may do so as follows:
+```javascript
+ObservableSlim.pauseChanges(proxy);
+```
+
+### Resume changes
+
+While an observable has changes paused, all observer functions will be invoked, but the target object will not be modified.
+
+To resume changes:
+
+```javascript
+ObservableSlim.resumeChanges(proxy);
+```
+
 ### Remove an observable
 
 When you no longer need to use an observable or monitor the object that it targets, you may remove the observable as follows:

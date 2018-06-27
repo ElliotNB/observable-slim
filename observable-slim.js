@@ -198,8 +198,9 @@ var ObservableSlim = (function() {
 						}
 					}
 				
-					// perform the delete that we've trapped
-					delete target[property];
+					// perform the delete that we've trapped if changes are not paused for this observable
+					if (!observable.changesPaused)
+						delete target[property];
 				
 				}
 				
@@ -339,8 +340,10 @@ var ObservableSlim = (function() {
 						}
 						
 						// because the value actually differs than the previous value
-						// we need to store the new value on the original target object
-						target[property] = value;
+						// we need to store the new value on the original target object,
+						// but only as long as changes have not been paused
+						if (!observable.changesPaused)
+							target[property] = value;
 						
 						// TO DO: the next block of code resolves test case #24, but it results in poor IE11 performance. Find a solution.
 						//
@@ -513,6 +516,49 @@ var ObservableSlim = (function() {
 			};
 			
 			if (foundMatch == false) throw new Error("ObseravableSlim could not resume observable -- matching proxy not found.");
+		},
+
+		/*	Method: pauseChanges
+				This method will prevent any changes (i.e., set, and deleteProperty) from being written to the target
+				object.  However, the observer functions will still be invoked to let you know what changes WOULD have
+				been made.  This can be useful if the changes need to be approved by an external source before the
+				changes take effect.
+
+			Parameters:
+				proxy	- the ES6 Proxy returned by the create() method.
+		 */
+		pauseChanges: function(proxy){
+			var i = observables.length;
+			var foundMatch = false;
+			while (i--) {
+				if (observables[i].parentProxy === proxy) {
+					observables[i].changesPaused = true;
+					foundMatch = true;
+					break;
+				}
+			};
+
+			if (foundMatch == false) throw new Error("ObseravableSlim could not pause changes on observable -- matching proxy not found.");
+		},
+
+		/*	Method: resumeChanges
+				This method will resume the changes that were taking place prior to the call to pauseChanges().
+
+			Parameters:
+				proxy	- the ES6 Proxy returned by the create() method.
+		 */
+		resumeChanges: function(proxy){
+			var i = observables.length;
+			var foundMatch = false;
+			while (i--) {
+				if (observables[i].parentProxy === proxy) {
+					observables[i].changesPaused = false;
+					foundMatch = true;
+					break;
+				}
+			};
+
+			if (foundMatch == false) throw new Error("ObseravableSlim could not resume changes on observable -- matching proxy not found.");
 		},
 		
 		/*	Method: remove
