@@ -84,6 +84,25 @@ var ObservableSlim = (function() {
 			
 			// if the observable is paused, then we don't want to execute any of the observer functions
 			if (observable.paused === true) return;
+
+			// utility function for executing all observers functions and waiting to unleash any errors until after all
+			// observer functions have been attempted
+			function _executeObservers () {
+				var errors = [];
+				for (var i = 0; i < observable.observers.length; i++){
+					try {
+						observable.observers[i](changes);
+					} catch (e) {
+						errors.push(e);
+					}
+				}
+				changes = [];
+
+				// we can really only throw one error at a time, so just the first one is thrown.
+				// this should be sufficient and it's at least better than not catching errors and causing the
+				// rest of the observers functions to not be triggered at all
+				if (errors.length > 0) throw errors[0];
+			}
 					
 			// execute observer functions on a 10ms settimeout, this prevents the observer functions from being executed 
 			// separately on every change -- this is necessary because the observer functions will often trigger UI updates
@@ -91,14 +110,12 @@ var ObservableSlim = (function() {
 				setTimeout(function() {
 					if (numChanges === changes.length) {
 						// invoke any functions that are observing changes
-						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-						changes = [];
+						_executeObservers()
 					}
 				},10);
 			} else {
 				// invoke any functions that are observing changes
-				for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-				changes = [];
+				_executeObservers()
 			}
 		};
 		
