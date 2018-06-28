@@ -3,16 +3,16 @@
 # Observable Slim
 https://github.com/elliotnb/observable-slim
 
-Version 0.0.6
+Version 0.0.7
 
 Licensed under the MIT license:
 
 http://www.opensource.org/licenses/MIT
 
-## Overview 
-Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object 
-and any nested children of that object. It is intended to assist with state management and one-way 
-data binding. Observable Slim aspires to be as lightweight and simple as possible. Minifies 
+## Overview
+Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object
+and any nested children of that object. It is intended to assist with state management and one-way
+data binding. Observable Slim aspires to be as lightweight and simple as possible. Minifies
 down to roughly 3000 characters.
 
 ## Install
@@ -32,7 +32,7 @@ $ npm install observable-slim
 
 ### Create an observer
 
-The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 Proxy 
+The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 Proxy
 whose changes we can observe. The `create` method accepts three parameters:
 
 1. `target` - Object, required, plain JavaScript object that we want to observe for changes.
@@ -97,7 +97,7 @@ var pp = ObservableSlim.create(data.testing, true, function(changes) { console.l
 var ppp = ObservableSlim.create(data.testing.test, true, function(changes) { console.log("Third observable");console.log(changes); });
 ```
 
-- A change to `ppp.testb` will trigger the callback on all three observables. 
+- A change to `ppp.testb` will trigger the callback on all three observables.
 - A change to `p.testing.test.testb` will also trigger the callback on all three observables.
 - A change to `pp.testc` will only trigger the first and second observable.
 - A change to `p.blah` will only trigger the first observable.
