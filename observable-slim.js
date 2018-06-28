@@ -90,21 +90,27 @@ var ObservableSlim = (function() {
  			if (domDelay === true) {
 				setTimeout(function() {
 					if (numChanges === changes.length) {
+
+						// we create a copy of changes before passing it to the observer functions because even if the observer function
+						// throws an error, we still need to ensure that changes is reset to an empty array so that old changes don't persist
+						var changesCopy = changes.slice(0);
+						changes = [];
+
 						// invoke any functions that are observing changes
-						try {
-							for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-						} finally {
-							changes = [];
-						}
+						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy);
+
 					}
 				},10);
 			} else {
+
+				// we create a copy of changes before passing it to the observer functions because even if the observer function
+				// throws an error, we still need to ensure that changes is reset to an empty array so that old changes don't persist
+				var changesCopy = changes.slice(0);
+				changes = [];
+
 				// invoke any functions that are observing changes
-				try {
-					for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changes);
-				} finally {
-					changes = [];
-				}
+				for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy);
+
 			}
 		};
 
