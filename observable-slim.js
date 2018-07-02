@@ -114,6 +114,66 @@ var ObservableSlim = (function() {
 			}
 		};
 
+		// because calling a method is treated as two separate operations (get, then call), in order to intercept method calls,
+		// the 'get' handler must be rigged up to return a wrapped function that triggers this handler when called
+		var applyHandler = function(target, funcName, args) {
+
+			// was this change an original change or was it a change that was re-triggered below
+			var originalChange = true;
+			if (dupProxy === proxy) {
+				originalChange = false;
+				dupProxy = null;
+			}
+
+			// record the function call that just took place
+			// no previousValue is recorded, because it may be too expensive to compute
+			changes.push({
+				"type":"function call"
+				,"target":target
+				,"function":funcName
+				,"functionArgs":args
+				,"currentPath":_getPath(target, funcName)
+				,"jsonPointer":_getPath(target, funcName, true)
+				// ,"proxy":proxy  // including this seems to cause issues...
+			});
+
+			var returnValue;
+			if (originalChange === true) {
+
+				for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
+
+				// loop over each proxy and see if the target for this change has any other proxies
+				var currentTargetProxy = targetsProxy[a];
+
+				var b = currentTargetProxy.length;
+				while (b--) {
+					// if the same target has a different proxy
+					if (currentTargetProxy[b].proxy !== proxy) {
+						// !!IMPORTANT!! store the proxy as a duplicate proxy (dupProxy) -- this will adjust the behavior above appropriately (that is,
+						// prevent a change on dupProxy from re-triggering the same change on other proxies)
+						dupProxy = currentTargetProxy[b].proxy;
+
+						// make the same function call on the different proxy for the same target object. it is important that we make this
+						// change *after* we invoke the same change on any other proxies so that the previousValue can show up correct for the
+						// other proxies
+						var thisArg = currentTargetProxy[b].proxy;
+						thisArg[funcName].apply(thisArg, args);
+					}
+				}
+
+				// perform the function call on the target object that we've trapped if changes are not paused for this observable
+				if (!observable.changesPaused){
+					returnValue = target[funcName].apply(target, args);
+				}
+
+			}
+
+			_notifyObservers(changes.length);
+
+			return returnValue;
+
+		};
+
 		var handler = {
 			get: function(target, property) {
 
@@ -134,12 +194,27 @@ var ObservableSlim = (function() {
 				}
 
 				// for performance improvements, we assign this to a variable so we do not have to lookup the property value again
-				var targetProp = target[property];
+				var targetProp = target[property],
+					targetNotNull = targetProp !== null,
+					targetHasProp = target.hasOwnProperty(property);
+
+				// if targetProp is a function, return a special wrapped version so we may intercept the call
+				if (typeof targetProp === 'function' && targetNotNull) {
+					// don't treat valueOf as a function here
+					if (targetProp.name === 'valueOf')
+						return targetProp();
+
+					// return special wrapped function
+					else
+						return function() {
+							return applyHandler(target, targetProp.name, arguments);
+						}
+				}
 
 				// if we are traversing into a new object, then we want to record path to that object and return a new observable.
 				// recursively returning a new observable allows us a single Observable.observe() to monitor all changes on
 				// the target object and any objects nested within.
-				if (targetProp instanceof Object && targetProp !== null && target.hasOwnProperty(property)) {
+				else if (targetProp instanceof Object && targetNotNull && targetHasProp) {
 
 					// if we've found a proxy nested on the object, then we want to retrieve the original object behind that proxy
 					if (targetProp.__isProxy === true) targetProp = targetProp.__getTarget;
