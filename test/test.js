@@ -160,7 +160,7 @@ function suite(proxy) {
 		var p = ObservableSlim.create(test, false, function(changes) {
 			expect(changes[0].type).to.equal("add");
 			expect(changes[0].newValue).to.equal("hello world");
-			expect(changes[0].currentPath).to.equal("arr");
+			expect(changes[0].currentPath).to.equal("arr.0");
 			expect(changes[0].property).to.equal("0");
 		});
 		
@@ -176,13 +176,13 @@ function suite(proxy) {
 			if (change === 0) {
 				expect(changes[0].type).to.equal("add");
 				expect(changes[0].newValue).to.equal("foo bar");
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.1");
 				expect(changes[0].property).to.equal("1");
 			} else if (change === 1) {
 				expect(changes[0].type).to.equal("update");
 				expect(changes[0].newValue).to.equal("hello world");
 				expect(changes[0].previousValue).to.equal("foo bar");
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.0");
 				expect(changes[0].property).to.equal("0");
 			}
 			change++;
@@ -205,14 +205,14 @@ function suite(proxy) {
 				expect(changes[0].property).to.equal("1");
 				expect(changes[0].newValue).to.equal(null);
 				expect(changes[0].previousValue).to.equal("foo bar");
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.1");
 				
 			} else if (change === 1) {
 				expect(changes[0].type).to.equal("update");
 				expect(changes[0].property).to.equal("length");
 				expect(changes[0].newValue).to.equal(1);
 				expect(changes[0].previousValue).to.equal(2);
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.length");
 			}
 			
 			change++;
@@ -260,19 +260,19 @@ function suite(proxy) {
 				expect(changes[0].property).to.equal("4");
 				expect(changes[0].newValue).to.equal("sunday");
 				expect(changes[0].previousValue).to.equal(undefined);
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.4");
 			} else if (change === 1) {
 				expect(changes[0].type).to.equal("update");
 				expect(changes[0].property).to.equal("2");
 				expect(changes[0].newValue).to.equal("foo bar");
 				expect(changes[0].previousValue).to.equal("sunday");
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.2");
 			} else if (change === 2) {
 				expect(changes[0].type).to.equal("update");
 				expect(changes[0].property).to.equal("1");
 				expect(changes[0].newValue).to.equal("inserting");
 				expect(changes[0].previousValue).to.equal("foo bar");
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.1");
 			}
 			change++
 		});
@@ -314,20 +314,20 @@ function suite(proxy) {
 				expect(changes[0].property).to.equal("0");
 				expect(changes[0].newValue).to.equal("hello world");
 				expect(changes[0].previousValue).to.equal("foo bar");
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.0");
 				
 			} else if (change === 1) {
 				expect(changes[0].type).to.equal("delete");
 				expect(changes[0].property).to.equal("1");
 				expect(changes[0].newValue).to.equal(null);
 				expect(changes[0].previousValue).to.equal("hello world");
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.1");
 			} else if (change === 2) {
 				expect(changes[0].type).to.equal("update");
 				expect(changes[0].property).to.equal("length");
 				expect(changes[0].newValue).to.equal(1);
 				expect(changes[0].previousValue).to.equal(2);
-				expect(changes[0].currentPath).to.equal("arr");
+				expect(changes[0].currentPath).to.equal("arr.length");
 			}
 			change++;
 		});

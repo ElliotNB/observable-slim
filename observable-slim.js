@@ -68,12 +68,7 @@ var ObservableSlim = (function() {
 				String of the nested path (e.g., hello.testing.1.bar or, if JSON pointer, /hello/testing/1/bar
 		*/
 		var _getPath = function(target, property, jsonPointer) {
-			var fullPath = null;
-			if (target instanceof Array) {
-				fullPath = (path !== "") ? (path) : property;
-			} else {
-				fullPath = (path !== "") ? (path + "." + property) : property;
-			}
+			var fullPath = (path !== "") ? (path + "." + property) : property;
 
 			if (jsonPointer === true) fullPath = "/" + fullPath.replace(/\./g, "/");
 
