@@ -56,8 +56,12 @@ var ObservableSlim = (function() {
 		
 		// record the nested path taken to access this object -- if there was no path then we provide the first empty entry
 		var path = originalPath || [{"target":target,"property":""}];
-
 		paths.push(path);
+		
+		// in order to accurately report the "previous value" of the "length" property on an Array
+		// we must use a helper property because intercepting a length change is not possible as of 8/13/2018 in 
+		// Chrome -- the new `length` value is already set by the time the `set` handler is invoked
+		if (target instanceof Array) target.__length = target.length;
 		
 		var changes = [];
 
@@ -246,7 +250,7 @@ var ObservableSlim = (function() {
 
 			},
 			set: function(target, property, value, receiver) {
-
+				
 				// if the value we're assigning is an object, then we want to ensure
 				// that we're assigning the original object, not the proxy, in order to avoid mixing
 				// the actual targets and proxies -- creates issues with path logging if we don't do this
@@ -262,8 +266,14 @@ var ObservableSlim = (function() {
 				// improve performance by saving direct references to the property
 				var targetProp = target[property];
 
-				// only record a change if the new value differs from the old one OR if this proxy was not the original proxy to receive the change
-				if (targetProp !== value || originalChange === false) {
+				// Only record this change if:
+				// 	1. the new value differs from the old one 
+				//	2. OR if this proxy was not the original proxy to receive the change
+				// 	3. OR the modified target is an array and the modified property is "length" and our helper property __length indicates that the array length has changed
+				//
+				// Regarding #3 above: mutations of arrays via .push or .splice actually modify the .length before the set handler is invoked
+				// so in order to accurately report the correct previousValue for the .length, we have to use a helper property.
+				if (targetProp !== value || originalChange === false || (property === "length" && target instanceof Array && target.__length !== value)) {
 
 					var foundObservable = true;
 
@@ -284,6 +294,13 @@ var ObservableSlim = (function() {
 						,"jsonPointer":_getPath(target, property, true)
 						,"proxy":proxy
 					});
+					
+					// mutations of arrays via .push or .splice actually modify the .length before the set handler is invoked
+					// so in order to accurately report the correct previousValue for the .length, we have to use a helper property.
+					if (property === "length" && target instanceof Array && target.__length !== value) {
+						changes[changes.length-1].previousValue = target.__length;
+						target.__length = value;
+					}
 
 					// !!IMPORTANT!! if this proxy was the first proxy to receive the change, then we need to go check and see
 					// if there are other proxies for the same project. if there are, then we will modify those proxies as well so the other

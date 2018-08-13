@@ -157,11 +157,21 @@ function suite(proxy) {
 
 	it('10. Push item on to an array.', () => {
 		var test = {"arr":[]};
+		var change = 0;
 		var p = ObservableSlim.create(test, false, function(changes) {
-			expect(changes[0].type).to.equal("add");
-			expect(changes[0].newValue).to.equal("hello world");
-			expect(changes[0].currentPath).to.equal("arr.0");
-			expect(changes[0].property).to.equal("0");
+			if (change === 0) {
+				expect(changes[0].type).to.equal("add");
+				expect(changes[0].newValue).to.equal("hello world");
+				expect(changes[0].currentPath).to.equal("arr.0");
+				expect(changes[0].property).to.equal("0");
+			} else if (change === 1) {
+				expect(changes[0].type).to.equal("update");
+				expect(changes[0].currentPath).to.equal("arr.length");
+				expect(changes[0].property).to.equal("length");
+				expect(changes[0].previousValue).to.equal(0);
+				expect(changes[0].newValue).to.equal(1);
+			}
+			change++;
 		});
 		
 		p.arr.push("hello world");
