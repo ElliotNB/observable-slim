@@ -12,7 +12,7 @@
  *	understood as possible. Minifies down to roughly 3000 characters.
  */
 var ObservableSlim = (function() {
-
+	paths = [];
 	// An array that stores all of the observables created through the public create() method below.
 	var observables = [];
 	// An array of all the objects that we have assigned Proxies to
@@ -43,8 +43,9 @@ var ObservableSlim = (function() {
 				domDelay 			- batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
 				originalObservable 	- object, the original observable created by the user, exists for recursion purposes,
 									  allows one observable to observe change on any nested/child objects.
-				originalPath 		- string, the path of the property in relation to the target on the original observable,
-									  exists for recursion purposes, allows one observable to observe change on any nested/child objects.
+				originalPath 		- array of objects, each object having the properties 'target' and 'property' -- target referring to the observed object itself
+									  and property referring to the name of that object in the nested structure. the path of the property in relation to the target 
+									  on the original observable, exists for recursion purposes, allows one observable to observe change on any nested/child objects. 
 
 			Returns:
 				An ES6 Proxy object.
@@ -52,8 +53,12 @@ var ObservableSlim = (function() {
 	var _create = function(target, domDelay, originalObservable, originalPath) {
 
 		var observable = originalObservable || null;
-		var path = originalPath || "";
+		
+		// record the nested path taken to access this object -- if there was no path then we provide the first empty entry
+		var path = originalPath || [{"target":target,"property":""}];
 
+		paths.push(path);
+		
 		var changes = [];
 
 		/*	Function: _getPath
@@ -68,8 +73,30 @@ var ObservableSlim = (function() {
 				String of the nested path (e.g., hello.testing.1.bar or, if JSON pointer, /hello/testing/1/bar
 		*/
 		var _getPath = function(target, property, jsonPointer) {
-			var fullPath = (path !== "") ? (path + "." + property) : property;
-
+		
+			var fullPath = "";
+			var lastTarget = null;
+			
+			// loop over each item in the path and append it to full path
+			for (var i = 0; i < path.length; i++) {
+				
+				// if the current object was a member of an array, it's possible that the array was at one point
+				// mutated and would cause the position of the current object in that array to change. we perform an indexOf
+				// lookup here to determine the current position of that object in the array before we add it to fullPath
+				if (lastTarget instanceof Array && !isNaN(path[i].property)) {
+					path[i].property = lastTarget.indexOf(path[i].target);
+				}
+				
+				fullPath = fullPath + "." + path[i].property
+				lastTarget = path[i].target;
+			}
+			
+			// add the current property
+			fullPath = fullPath + "." + property;
+			
+			// remove the beginning two dots -- ..foo.bar becomes foo.bar (the first item in the nested chain doesn't have a property name)
+			fullPath = fullPath.substring(2);
+			
 			if (jsonPointer === true) fullPath = "/" + fullPath.replace(/\./g, "/");
 
 			return fullPath;
@@ -153,8 +180,10 @@ var ObservableSlim = (function() {
 
 					// if we're arrived here, then that means there is no proxy for the object the user just accessed, so we
 					// have to create a new proxy for it
-					var newPath = (path !== "") ? (path + "." + property) : property;
 
+					// create a shallow copy of the path array -- if we didn't create a shallow copy then all nested objects would share the same path array and the path wouldn't be accurate
+					var newPath = path.slice(0);
+					newPath.push({"target":targetProp,"property":property});
 					return _create(targetProp, domDelay, observable, newPath);
 				} else {
 					return targetProp;
@@ -218,6 +247,11 @@ var ObservableSlim = (function() {
 			},
 			set: function(target, property, value, receiver) {
 
+				// if the value we're assigning is an object, then we want to ensure
+				// that we're assigning the original object, not the proxy, in order to avoid mixing
+				// the actual targets and proxies -- creates issues with path logging if we don't do this
+				if (value.__isProxy) value = value.__getTarget;
+			
 				// was this change an original change or was it a change that was re-triggered below
 				var originalChange = true;
 				if (dupProxy === proxy) {
