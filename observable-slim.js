@@ -254,7 +254,7 @@ var ObservableSlim = (function() {
 				// if the value we're assigning is an object, then we want to ensure
 				// that we're assigning the original object, not the proxy, in order to avoid mixing
 				// the actual targets and proxies -- creates issues with path logging if we don't do this
-				if (value.__isProxy) value = value.__getTarget;
+				if (value && value.__isProxy) value = value.__getTarget;
 			
 				// was this change an original change or was it a change that was re-triggered below
 				var originalChange = true;
