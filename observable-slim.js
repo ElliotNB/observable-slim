@@ -219,6 +219,9 @@ var ObservableSlim = (function() {
 
 				if (originalChange === true) {
 
+					// perform the delete that we've trapped if changes are not paused for this observable
+					if (!observable.changesPaused) delete target[property];
+				
 					for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
 
 					// loop over each proxy and see if the target for this change has any other proxies
@@ -237,10 +240,6 @@ var ObservableSlim = (function() {
 							delete currentTargetProxy[b].proxy[property];
 						}
 					}
-
-					// perform the delete that we've trapped if changes are not paused for this observable
-					if (!observable.changesPaused)
-						delete target[property];
 
 				}
 
@@ -307,6 +306,11 @@ var ObservableSlim = (function() {
 					// observers can be modified of the change that has occurred.
 					if (originalChange === true) {
 
+						// because the value actually differs than the previous value
+						// we need to store the new value on the original target object,
+						// but only as long as changes have not been paused
+						if (!observable.changesPaused) target[property] = value;
+					
 						for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
 
 						foundObservable = (a < l);
@@ -396,12 +400,6 @@ var ObservableSlim = (function() {
 								}
 							},10000);
 						}
-
-						// because the value actually differs than the previous value
-						// we need to store the new value on the original target object,
-						// but only as long as changes have not been paused
-						if (!observable.changesPaused)
-							target[property] = value;
 
 						// TO DO: the next block of code resolves test case #24, but it results in poor IE11 performance. Find a solution.
 						//

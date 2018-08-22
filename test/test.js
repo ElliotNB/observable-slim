@@ -620,10 +620,24 @@ function suite(proxy) {
 
 	});
 	
+	it('30. Verify that a mutation on an object observed by two handlers returns the correct new value in both handlers.', () => {
+		
+		var data = {"foo":"bar"};
+		var p = ObservableSlim.create(data, false, function(changes) { 
+			expect(p.foo).to.equal("test");
+		});
+		
+		var pp = ObservableSlim.create(p, false, function(changes) { 
+			expect(p.foo).to.equal("test");
+		});
+		
+		p.foo = "test";		
+	});
+	
 	
 	// This test currently does not have an expectation or assertion. For now it simply
 	// ensures that the garbage clean-up code runs and that the garbage clean-up doesn't throw an error.
- 	it('30. Clean-up observers of overwritten (orphaned) objects.', (done) => {
+ 	it('31. Clean-up observers of overwritten (orphaned) objects.', (done) => {
 
 		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
 		var p = ObservableSlim.create(data, false, function(changes) { 
