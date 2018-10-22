@@ -1,6 +1,7 @@
+# :eyes: Observable Slim
+
 [![Build Status](https://travis-ci.org/ElliotNB/observable-slim.svg?branch=master)](https://travis-ci.org/ElliotNB/observable-slim) [![Coverage Status](https://coveralls.io/repos/github/ElliotNB/observable-slim/badge.svg)](https://coveralls.io/github/ElliotNB/observable-slim)
 
-# Observable Slim
 https://github.com/elliotnb/observable-slim
 
 Version 0.1.0
