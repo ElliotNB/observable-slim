@@ -1,6 +1,6 @@
 /*
  * 	Observable Slim
- *	Version 0.1.0
+ *	Version 0.1.1
  * 	https://github.com/elliotnb/observable-slim
  *
  * 	Licensed under the MIT license:
@@ -342,7 +342,7 @@ var ObservableSlim = (function() {
 							// orphaned and grow memory usage. we excute this on a setTimeout so that the clean-up process does not block
 							// the UI rendering -- there's no need to execute the clean up immediately
 							setTimeout(function() {
-
+								
 								if (typeOfTargetProp === "object" && targetProp !== null) {
 
 									// check if the to-be-overwritten target property still exists on the target object
@@ -353,6 +353,32 @@ var ObservableSlim = (function() {
 									for (var i = 0, l = keys.length; i < l; i++) {
 										if (target[keys[i]] === targetProp) return;
 									}
+									
+									var stillExists = false;
+									
+									// now we perform the more expensive search recursively through the target object.
+									// if we find the targetProp (that was just overwritten) still exists somewhere else
+									// further down in the object, then we still need to observe the targetProp on this observable.
+									(function iterate(target) {
+										var keys = Object.keys(target);
+										for (var i = 0, l = keys.length; i < l; i++) {
+											var property = keys[i];
+											if (target[property].__isProxy === true) {
+												var nestedTarget = target[property].__getTarget;
+											} else {
+												var nestedTarget = target[property];
+											}
+											if (target[property] instanceof Object && target[property] !== null) iterate(nestedTarget);
+											if (target[property] === targetProp) {
+												stillExists = true;
+												return;
+											}
+										};
+									})(target);
+									
+									// even though targetProp was overwritten, if it still exists somewhere else on the object,
+									// then we don't want to remove the observable for that object (targetProp)
+									if (stillExists === true) return;
 
 									// loop over each property and recursively invoke the `iterate` function for any
 									// objects nested on targetProp
@@ -365,7 +391,6 @@ var ObservableSlim = (function() {
 										}
 
 										// if there are any existing target objects (objects that we're already observing)...
-										//var c = targets.indexOf(obj);
 										var c = -1;
 										for (var i = 0, l = targets.length; i < l; i++) {
 											if (obj === targets[i]) {

@@ -635,20 +635,39 @@ function suite(proxy) {
 	});
 	
 	
-	// This test currently does not have an expectation or assertion. For now it simply
-	// ensures that the garbage clean-up code runs and that the garbage clean-up doesn't throw an error.
+	// When you overwrite a property that points to an object, Observable-Slim will perform a clean-up
+	// process to stop watching objects that are no longer a child of the parent (top-most) observed object.
+	// However, if a reference to the overwritten object exists somewhere else on the parent observed object, then we
+	// still need to watch/observe that object for changes. This test verifies that even after the clean-up process (10 second delay)
+	// changes to an overwritten object are still monitored as long as there's another reference to the object.
  	it('31. Clean-up observers of overwritten (orphaned) objects.', (done) => {
 
 		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		var dupe = {"duplicate":"is duplicated"};
+		data.blah.dupe = dupe;
+		data.dupe = dupe;
+		var changeCnt = 0;
+	
 		var p = ObservableSlim.create(data, false, function(changes) { 
-			return null;
+			changeCnt++;
+			if (changeCnt === 1) {
+				expect(p.testing.test).to.be.an("undefined");
+			} else if (changeCnt === 2) {
+				expect(p.dupe).to.be.an("object");
+				expect(p.dupe.duplicate).to.be.an("undefined");
+			} else {
+				expect(p.blah.dupe.duplicate).to.equal("should catch this change");
+				done();
+			}
 		});
 	
 		p.testing = {};
+		p.dupe = {};
+		
 	
 		setTimeout(function() {
-			done();
-		},10000);
+			p.blah.dupe.duplicate = "should catch this change";
+		},10500);
 	
 	});
 	
