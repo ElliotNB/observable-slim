@@ -189,6 +189,8 @@ var ObservableSlim = (function() {
 					var newPath = path.slice(0);
 					newPath.push({"target":targetProp,"property":property});
 					return _create(targetProp, domDelay, observable, newPath);
+				} else if ((property === 'toJSON' || property === 'valueOf') && targetProp instanceof Function && targetProp !== null) {
+					return targetProp.bind(target);
 				} else {
 					return targetProp;
 				}

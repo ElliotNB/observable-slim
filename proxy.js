@@ -169,6 +169,16 @@
 				}
 				Object.defineProperty(proxy, k, {get: getter.bind(target, k)});
 			}
+			var prototypeMethodsRequestingBinding = ['toJSON', 'valueOf'];
+			prototypeMethodsRequestingBinding.forEach(function(k) {
+				if (propertyMap[k] === true) {
+					return;
+				}
+				if (!target[k]) {
+					return;
+				}
+				Object.defineProperty(proxy, k, {get: getter.bind(target, k)});
+			});
 		}
 
 		proxy.__isProxy = true;

@@ -670,6 +670,19 @@ function suite(proxy) {
 		},10500);
 	
 	});
-	
+
+	it('32. JSON.stringify does not fail on proxyied date.', () => {
+      		var test = {d: new Date()};
+      		var p = ObservableSlim.create(test, false, function () {});
+
+      		JSON.stringify(p);
+      	});
+
+      	it('33. valueOf does not fail on proxyied date.', () => {
+      		var test = {d: new Date()};
+      		var p = ObservableSlim.create(test, false, function () {});
+
+      		p.d.valueOf();
+      	});	
 
 };
