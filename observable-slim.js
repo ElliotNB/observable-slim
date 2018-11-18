@@ -161,6 +161,9 @@ var ObservableSlim = (function() {
 
 				// for performance improvements, we assign this to a variable so we do not have to lookup the property value again
 				var targetProp = target[property];
+				if (target instanceof Date && targetProp instanceof Function && targetProp !== null) {
+					return targetProp.bind(target);
+				}
 
 				// if we are traversing into a new object, then we want to record path to that object and return a new observable.
 				// recursively returning a new observable allows us a single Observable.observe() to monitor all changes on
@@ -189,8 +192,6 @@ var ObservableSlim = (function() {
 					var newPath = path.slice(0);
 					newPath.push({"target":targetProp,"property":property});
 					return _create(targetProp, domDelay, observable, newPath);
-				} else if ((property === 'toJSON' || property === 'valueOf') && targetProp instanceof Function && targetProp !== null) {
-					return targetProp.bind(target);
 				} else {
 					return targetProp;
 				}
