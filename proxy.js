@@ -169,16 +169,6 @@
 				}
 				Object.defineProperty(proxy, k, {get: getter.bind(target, k)});
 			}
-			var prototypeMethodsRequestingBinding = ['toJSON', 'valueOf'];
-			prototypeMethodsRequestingBinding.forEach(function(k) {
-				if (propertyMap[k] === true) {
-					return;
-				}
-				if (!target[k]) {
-					return;
-				}
-				Object.defineProperty(proxy, k, {get: getter.bind(target, k)});
-			});
 		}
 
 		proxy.__isProxy = true;
@@ -292,6 +282,12 @@
 				return returnValue;
 			};
 			
+		} else if (proxy instanceof Date) {
+			Object
+				.getOwnPropertyNames(Date.prototype)
+				.forEach(function(k){
+					Object.defineProperty(proxy, k, {get: getter.bind(target, k)});
+				});
 		} else {
 			// The Proxy polyfill cannot handle adding new properties. Seal the target and proxy.
 			Object.seal(target);
