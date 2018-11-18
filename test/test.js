@@ -683,6 +683,13 @@ function suite(proxy) {
       		var p = ObservableSlim.create(test, false, function () {});
 
       		p.d.valueOf();
-      	});	
-
+      	});
+	
+	it('34. Delete property after calling ObservableSlim.remove does not fail.', () => {
+		var test = {foo: 'foo'};
+		var p = ObservableSlim.create(test, false, function () {});
+		
+		ObservableSlim.remove(p);
+		delete p.foo;
+	});
 };

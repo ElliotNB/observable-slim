@@ -227,7 +227,7 @@ var ObservableSlim = (function() {
 					for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
 
 					// loop over each proxy and see if the target for this change has any other proxies
-					var currentTargetProxy = targetsProxy[a];
+					var currentTargetProxy = targetsProxy[a] || [];
 
 					var b = currentTargetProxy.length;
 					while (b--) {
