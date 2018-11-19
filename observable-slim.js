@@ -366,7 +366,7 @@ var ObservableSlim = (function() {
 										var keys = Object.keys(target);
 										for (var i = 0, l = keys.length; i < l; i++) {
 											var property = keys[i];
-											if (target[property].__isProxy === true) {
+											if (target[property] && target[property].__isProxy === true) {
 												var nestedTarget = target[property].__getTarget;
 											} else {
 												var nestedTarget = target[property];
