@@ -672,18 +672,18 @@ function suite(proxy) {
 	});
 
 	it('32. JSON.stringify does not fail on proxyied date.', () => {
-      		var test = {d: new Date()};
-      		var p = ObservableSlim.create(test, false, function () {});
+			var test = {d: new Date()};
+			var p = ObservableSlim.create(test, false, function () {});
 
-      		JSON.stringify(p);
-      	});
+			JSON.stringify(p);
+	});
 
-      	it('33. valueOf does not fail on proxyied date.', () => {
-      		var test = {d: new Date()};
-      		var p = ObservableSlim.create(test, false, function () {});
+	it('33. valueOf does not fail on proxyied date.', () => {
+		var test = {d: new Date()};
+		var p = ObservableSlim.create(test, false, function () {});
 
-      		p.d.valueOf();
-      	});
+		p.d.valueOf();
+	});
 	
 	it('34. Delete property after calling ObservableSlim.remove does not fail.', () => {
 		var test = {foo: 'foo'};

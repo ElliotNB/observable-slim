@@ -1,7 +1,7 @@
 {
   "name": "observable-slim",
   "description": "Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. It is intended to assist with state management and one-way data binding.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "observable-slim.js",
   "devDependencies": {
     "babel-core": "6.26.0",
@@ -21,7 +21,9 @@
     "gulp-uglify": "3.0.0",
     "gulp-useref": "3.1.5",
     "nyc": "11.8.0",
-    "util": "0.10.3"
+    "util": "0.10.3",
+    "gulp-uglify-es": "1.0.4",
+    "gulp-util": "3.0.8"
   },
   "babel": {
     "presets": [
