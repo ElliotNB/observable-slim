@@ -4,7 +4,7 @@
 
 https://github.com/elliotnb/observable-slim
 
-Version 0.1.2
+Version 0.1.3
 
 Licensed under the MIT license:
 
