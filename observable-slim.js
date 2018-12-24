@@ -172,18 +172,22 @@ var ObservableSlim = (function() {
 
 					// if we've found a proxy nested on the object, then we want to retrieve the original object behind that proxy
 					if (targetProp.__isProxy === true) targetProp = targetProp.__getTarget;
-
-					// if we've previously setup a proxy on this target, then...
-					//var a = observable.targets.indexOf(targetProp);
-					var a = -1;
-					var observableTargets = observable.targets;
-					for (var i = 0, l = observableTargets.length; i < l; i++) {
-						if (targetProp === observableTargets[i]) {
-							a = i;
-							break;
+					
+					// if the object accessed by the user (targetProp) already has a __targetPosition AND the object
+					// stored at target[targetProp.__targetPosition] is not null, then that means we are already observing this object
+					// we might be able to return a proxy that we've already created for the object
+					if (targetProp.__targetPosition > -1 && targets[targetProp.__targetPosition] !== null) {
+						
+						// loop over the proxies that we've created for this object
+						var ttp = targetsProxy[targetProp.__targetPosition];
+						for (var i = 0, l = ttp.length; i < l; i++) {
+							
+							// if we find a proxy that was setup for this particular observable, then return that proxy
+							if (observable === ttp[i].observable) {
+								return ttp[i].proxy;
+							}
 						}
 					}
-					if (a > -1) return observable.proxies[a];
 
 					// if we're arrived here, then that means there is no proxy for the object the user just accessed, so we
 					// have to create a new proxy for it
@@ -313,10 +317,23 @@ var ObservableSlim = (function() {
 						// we need to store the new value on the original target object,
 						// but only as long as changes have not been paused
 						if (!observable.changesPaused) target[property] = value;
-					
-						for (var a = 0, l = targets.length; a < l; a++) if (target === targets[a]) break;
 
-						foundObservable = (a < l);
+
+						foundObservable = false;
+						
+						var targetPosition = target.__targetPosition;
+						var z = targetsProxy[targetPosition].length;
+						
+						// find the parent target for this observable -- if the target for that observable has not been removed
+						// from the targets array, then that means the observable is still active and we should notify the observers of this change
+						while (z--) {
+							if (observable === targetsProxy[targetPosition][z].observable) {
+								if (targets[targetsProxy[targetPosition][z].observable.parentTarget.__targetPosition] !== null) {
+									foundObservable = true;
+									break;
+								}
+							}
+						}
 
 						// if we didn't find an observable for this proxy, then that means .remove(proxy) was likely invoked
 						// so we no longer need to notify any observer function about the changes, but we still need to update the
@@ -324,7 +341,7 @@ var ObservableSlim = (function() {
 						if (foundObservable) {
 
 							// loop over each proxy and see if the target for this change has any other proxies
-							var currentTargetProxy = targetsProxy[a];
+							var currentTargetProxy = targetsProxy[targetPosition];
 							for (var b = 0, l = currentTargetProxy.length; b < l; b++) {
 								// if the same target has a different proxy
 								if (currentTargetProxy[b].proxy !== proxy) {
@@ -365,14 +382,12 @@ var ObservableSlim = (function() {
 									(function iterate(target) {
 										var keys = Object.keys(target);
 										for (var i = 0, l = keys.length; i < l; i++) {
+											
 											var property = keys[i];
-											if (target[property] && target[property].__isProxy === true) {
-												var nestedTarget = target[property].__getTarget;
-											} else {
-												var nestedTarget = target[property];
-											}
-											if (target[property] instanceof Object && target[property] !== null) iterate(nestedTarget);
-											if (target[property] === targetProp) {
+											var nestedTarget = target[property];
+											
+											if (nestedTarget instanceof Object && nestedTarget !== null) iterate(nestedTarget);
+											if (nestedTarget === targetProp) {
 												stillExists = true;
 												return;
 											}
@@ -419,8 +434,8 @@ var ObservableSlim = (function() {
 											// if there are no more observables assigned to the target object, then we can remove
 											// the target object altogether. this is necessary to prevent growing memory consumption particularly with large data sets
 											if (currentTargetProxy.length == 0) {
-												targetsProxy.splice(c,1);
-												targets.splice(c,1);
+												// targetsProxy.splice(c,1);
+												targets[c] = null;
 											}
 										}
 
@@ -429,8 +444,9 @@ var ObservableSlim = (function() {
 							},10000);
 						}
 
-						// TO DO: the next block of code resolves test case #24, but it results in poor IE11 performance. Find a solution.
-						//
+						// TO DO: the next block of code resolves test case #29, but it results in poor IE11 performance with very large objects.
+						// UPDATE: need to re-evaluate IE11 performance due to major performance overhaul from 12/23/2018.
+						// 
 						// if the value we've just set is an object, then we'll need to iterate over it in order to initialize the
 						// observers/proxies on all nested children of the object
 						/* if (value instanceof Object && value !== null) {
@@ -456,40 +472,45 @@ var ObservableSlim = (function() {
 			}
 		}
 
+		var __targetPosition = target.__targetPosition;
+		if (!(__targetPosition > -1)) {
+			Object.defineProperty(target, "__targetPosition", {
+				value: targets.length
+				,writable: false
+				,enumerable: false
+				,configurable: false
+			});
+		}
+		
 		// create the proxy that we'll use to observe any changes
 		var proxy = new Proxy(target, handler);
 
 		// we don't want to create a new observable if this function was invoked recursively
 		if (observable === null) {
-			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"targets":[target],"proxies":[proxy],"paused":false,"path":path,"changesPaused":false};
+			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false,"path":path,"changesPaused":false};
 			observables.push(observable);
-		} else {
-			observable.targets.push(target);
-			observable.proxies.push(proxy);
 		}
 
 		// store the proxy we've created so it isn't re-created unnecessairly via get handler
 		var proxyItem = {"target":target,"proxy":proxy,"observable":observable};
 
-		//var targetPosition = targets.indexOf(target);
-		var targetPosition = -1;
-		for (var i = 0, l = targets.length; i < l; i++) {
-			if (target === targets[i]) {
-				targetPosition = i;
-				break;
-			}
-		}
-
 		// if we have already created a Proxy for this target object then we add it to the corresponding array
 		// on targetsProxy (targets and targetsProxy work together as a Hash table indexed by the actual target object).
-		if (targetPosition > -1) {
-			targetsProxy[targetPosition].push(proxyItem);
-		// else this is a target object that we have not yet created a Proxy for, so we must add it to targets,
+		if (__targetPosition > -1) {
+			
+			// the targets array is set to null for the position of this particular object, then we know that
+			// the observable was removed some point in time for this object -- so we need to set the reference again
+			if (targets[__targetPosition] === null) {
+				targets[__targetPosition] = target;
+			}
+			
+			targetsProxy[__targetPosition].push(proxyItem);
+			
+		// else this is a target object that we had not yet created a Proxy for, so we must add it to targets,
 		// and push a new array on to targetsProxy containing the new Proxy
 		} else {
 			targets.push(target);
 			targetsProxy.push([proxyItem]);
-			targetPosition = targets.length - 1;
 		}
 
 		return proxy;
@@ -656,7 +677,7 @@ var ObservableSlim = (function() {
 
 			var matchedObservable = null;
 			var foundMatch = false;
-
+			
 			var c = observables.length;
 			while (c--) {
 				if (observables[c].parentProxy === proxy) {
@@ -672,9 +693,14 @@ var ObservableSlim = (function() {
 				while (b--) {
 					if (targetsProxy[a][b].observable === matchedObservable) {
 						targetsProxy[a].splice(b,1);
+						
+						// if there are no more proxies for this target object
+						// then we null out the position for this object on the targets array
+						// since we are essentially no longer observing this object.
+						// we do not splice it off the targets array, because if we re-observe the same 
+						// object at a later time, the property __targetPosition cannot be redefined.
 						if (targetsProxy[a].length === 0) {
-							targetsProxy.splice(a,1);
-							targets.splice(a,1);
+							targets[a] = null;
 						};
 					}
 				};
