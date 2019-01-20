@@ -157,6 +157,9 @@ var ObservableSlim = (function() {
 						parentPath.splice(-(i+1),(i+1));
 						return _getProperty(observable.parentProxy, parentPath.join("."));
 					}
+				} else if (property === "__getPath") {
+					var parentPath = _getPath(target, "__getParent");
+					return parentPath.slice(0, -12);
 				}
 
 				// for performance improvements, we assign this to a variable so we do not have to lookup the property value again
