@@ -12,7 +12,7 @@
  *	understood as possible. Minifies down to roughly 3000 characters.
  */
 var ObservableSlim = (function() {
-	paths = [];
+	var paths = [];
 	// An array that stores all of the observables created through the public create() method below.
 	var observables = [];
 	// An array of all the objects that we have assigned Proxies to
@@ -157,6 +157,9 @@ var ObservableSlim = (function() {
 						parentPath.splice(-(i+1),(i+1));
 						return _getProperty(observable.parentProxy, parentPath.join("."));
 					}
+				} else if (property === "__getPath") {
+					var parentPath = _getPath(target, "__getParent");
+					return parentPath.slice(0, -12);
 				}
 
 				// for performance improvements, we assign this to a variable so we do not have to lookup the property value again
