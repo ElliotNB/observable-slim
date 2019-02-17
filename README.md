@@ -1,6 +1,6 @@
 # :eyes: Observable Slim
 
-[![Build Status](https://travis-ci.org/ElliotNB/observable-slim.svg?branch=master)](https://travis-ci.org/ElliotNB/observable-slim) [![Coverage Status](https://coveralls.io/repos/github/ElliotNB/observable-slim/badge.svg)](https://coveralls.io/github/ElliotNB/observable-slim)
+[![Build Status](https://travis-ci.org/ElliotNB/observable-slim.svg?branch=master)](https://travis-ci.org/ElliotNB/observable-slim) [![Coverage Status](https://coveralls.io/repos/github/ElliotNB/observable-slim/badge.svg)](https://coveralls.io/github/ElliotNB/observable-slim) [![Monthly Downloads](https://img.shields.io/npm/dm/observable-slim.svg)](https://www.npmjs.com/package/observable-slim)
 
 https://github.com/elliotnb/observable-slim
 
@@ -25,7 +25,7 @@ down to roughly 3000 characters.
 Also available via NPM:
 
 ```
-$ npm install observable-slim
+$ npm install observable-slim --save
 ```
 
 ## Usage
@@ -210,6 +210,21 @@ function traverseUp(childObj) {
 traverseUp(proxy.hello.foo);
 ```
 
+**Note:** This functionality is not supported by the ES5 Proxy polyfill.
+
+### Retrieve the path of an object relative to the top-level observer
+
+ObservablesSlim also allows you to retrieve the full path of an object relative to the top-level observed object:
+
+```javascript
+var data = {"foo":"bar","arr":[{"test":{}}],"test":{"deeper":{}}};
+var p = ObservableSlim.create(data, false, function(changes) {});
+
+console.log(p.test.deeper.__getPath); // logs "test.deeper"
+
+```
+
+**Note:** This functionality is not supported by the ES5 Proxy polyfill.
 
 ## Requirements
 

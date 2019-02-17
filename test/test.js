@@ -766,4 +766,15 @@ function suite(proxy) {
 		
 	});
 	
+	it('41. Verify __getPath returns correct path (not supported with ES5 polyfill).', () => {
+		if (global.Proxy === global.NativeProxy) {
+			var data = {"foo":"bar","arr":[{"test":{}}],"test":{"deeper":{}}};
+			var p = ObservableSlim.create(data, false, function(changes) {});
+			
+			expect(p.test.deeper.__getPath).to.equal("test.deeper");
+			expect(p.arr[0].test.__getPath).to.equal("arr.0.test");
+		}
+		
+	});
+	
 };

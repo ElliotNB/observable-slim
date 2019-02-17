@@ -157,7 +157,9 @@ var ObservableSlim = (function() {
 						parentPath.splice(-(i+1),(i+1));
 						return _getProperty(observable.parentProxy, parentPath.join("."));
 					}
+				// return the full path of the current object relative to the parent observable
 				} else if (property === "__getPath") {
+					// strip off the 12 characters for ".__getParent"
 					var parentPath = _getPath(target, "__getParent");
 					return parentPath.slice(0, -12);
 				}
