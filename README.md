@@ -13,7 +13,7 @@ http://www.opensource.org/licenses/MIT
 ## Overview
 Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. Observable Slim aspires to be as highly performant and lightweight as possible. Minifies down to 5KB.
 
-Observable Slim was originally built as part of the **[Nimbly](https://github.com/elliotnb/nimbly)** JS framework where it assisted with state management, state mutation triggers and one-way data binding. Observerable Slim was separated out from Nimbly in order to serve a a variety of other use cases outside of the scope of the **[Nimbly](https://github.com/elliotnb/nimbly)** framework.
+Observable Slim was originally built as part of the **[Nimbly](https://github.com/elliotnb/nimbly)** JS framework where it assisted with state management, state mutation triggers and one-way data binding. Observerable Slim was separated out from Nimbly in order to service other use cases outside of the scope of the **[Nimbly](https://github.com/elliotnb/nimbly)** framework.
 
 ## Install
 
