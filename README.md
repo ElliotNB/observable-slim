@@ -11,10 +11,9 @@ Licensed under the MIT license:
 http://www.opensource.org/licenses/MIT
 
 ## Overview
-Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object
-and any nested children of that object. It is intended to assist with state management and one-way
-data binding. Observable Slim aspires to be as lightweight and simple as possible. Minifies
-down to roughly 3000 characters.
+Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. Observable Slim aspires to be as highly performant and lightweight as possible. Minifies down to 5KB.
+
+Observable Slim was originally built as part of the **[Nimbly](https://github.com/elliotnb/nimbly)** JS framework where it assists with state management, state mutation triggers and one-way data binding. Observerable Slim was separated out from Nimbly in order to serve use cases outside of the scope of the **[Nimbly](https://github.com/elliotnb/nimbly)** framework.
 
 ## Install
 
@@ -33,8 +32,7 @@ $ npm install observable-slim --save
 
 ### Create an observer
 
-The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 Proxy
-whose changes we can observe. The `create` method accepts three parameters:
+The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 Proxy whose changes we can observe. The `create` method accepts three parameters:
 
 1. `target` - Object, required, plain JavaScript object that we want to observe for changes.
 2. `domDelay` - Boolean, required, if true, then Observable Slim will batch up observed changes to `target` on a 10ms delay (via `setTimeout`). If false, then `observer` will be immediately invoked after each individual change made to `target`. It is helpful to set `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance).
