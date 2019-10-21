@@ -12,6 +12,10 @@ var gutil = require('gulp-util');
 
 gulp.task('default', function(){
 	return gulp.src(['observable-slim.js','proxy.js'])
+		.pipe(babel({
+            presets: ['@babel/preset-env']
+			,sourceType: "script" // prevent insertion of "use strict"
+        }))
 		.pipe(useref())
 		// Minifies only if it's a JavaScript file
 		.pipe(uglify())
