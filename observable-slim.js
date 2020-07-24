@@ -727,6 +727,47 @@ var ObservableSlim = (function() {
 			if (foundMatch == false) throw new Error("ObseravableSlim could not flush changes-- matching proxy not found.");
 		},
 
+		/*	Method: clearChanges
+				This method will clear existing change notifications
+
+			Parameters:
+				proxy 	- the ES6 Proxy returned by the create() method.
+		*/
+		clearChanges: function(proxy) {
+			var i = observables.length;
+			var foundMatch = false;
+			while (i--) {
+				if (observables[i].parentProxy === proxy) {
+					foundMatch = true;
+					observables[i].changesQueue = [];
+					break;
+				}
+			};
+
+			if (foundMatch == false) throw new Error("ObseravableSlim could not clear change queue -- matching proxy not found.");
+		},
+
+		/*	Method: cancelChanges
+				This method will cancel any pending change notifications
+
+			Parameters:
+				proxy 	- the ES6 Proxy returned by the create() method.
+		*/
+		cancelChanges: function(proxy) {
+			var i = observables.length;
+			var foundMatch = false;
+			while (i--) {
+				if (observables[i].parentProxy === proxy) {
+					foundMatch = true;
+					observables[i].queueChanges = false;
+					observables[i].changesQueue = [];
+					break;
+				}
+			};
+
+			if (foundMatch == false) throw new Error("ObseravableSlim could not cancel change queue -- matching proxy not found.");
+		},
+
 		/*	Method: remove
 				This method will remove the observable and proxy thereby preventing any further callback observers for
 				changes occuring to the target object.
