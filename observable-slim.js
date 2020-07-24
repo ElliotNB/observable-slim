@@ -113,7 +113,7 @@ var ObservableSlim = (function() {
 
 			// execute observer functions on a 10ms settimeout, this prevents the observer functions from being executed
 			// separately on every change -- this is necessary because the observer functions will often trigger UI updates
- 			if (domDelay === true) {
+ 			if (domDelay === true && observable.queueChanges === false) {
 				setTimeout(function() {
 					if (numChanges === changes.length) {
 
@@ -134,8 +134,12 @@ var ObservableSlim = (function() {
 				var changesCopy = changes.slice(0);
 				changes = [];
 
-				// invoke any functions that are observing changes
-				for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy);
+				if (observable.queueChanges === true) {
+					observable.changesQueue = observable.changesQueue.concat(changesCopy);
+				} else {
+					// invoke any functions that are observing changes
+					for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy);
+				}
 
 			}
 		};
@@ -492,7 +496,7 @@ var ObservableSlim = (function() {
 
 		// we don't want to create a new observable if this function was invoked recursively
 		if (observable === null) {
-			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false,"path":path,"changesPaused":false};
+			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false,"path":path,"changesPaused":false,"queueChanges":false,"changesQueue":[]};
 			observables.push(observable);
 		}
 
@@ -669,6 +673,47 @@ var ObservableSlim = (function() {
 			};
 
 			if (foundMatch == false) throw new Error("ObseravableSlim could not resume changes on observable -- matching proxy not found.");
+		},
+
+		/*	Method: queueChanges
+				This method will queue change notifications until flushChanges is called
+
+			Parameters:
+				proxy 	- the ES6 Proxy returned by the create() method.
+		*/
+		queueChanges: function(proxy) {
+			var i = observables.length;
+			var foundMatch = false;
+			while (i--) {
+				if (observables[i].parentProxy === proxy) {
+					observables[i].queueChanges = true;
+					foundMatch = true;
+					break;
+				}
+			};
+
+			if (foundMatch == false) throw new Error("ObseravableSlim could not queueChanges -- matching proxy not found.");
+		},
+
+		/*	Method: flushChanges
+				This method will flush all queued changes since the last queueChanges was called
+
+			Parameters:
+				proxy 	- the ES6 Proxy returned by the create() method.
+		*/
+		flushChanges: function(proxy) {
+			var i = observables.length;
+			var foundMatch = false;
+			while (i--) {
+				if (observables[i].parentProxy === proxy) {
+					observables[i].queueChanges = false;
+					observables[i].observers.forEach(o => o(observables[i].changesQueue))
+					foundMatch = true;
+					break;
+				}
+			};
+
+			if (foundMatch == false) throw new Error("ObseravableSlim could not flush changes-- matching proxy not found.");
 		},
 
 		/*	Method: remove
