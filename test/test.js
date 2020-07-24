@@ -776,5 +776,79 @@ function suite(proxy) {
 		}
 		
 	});
-	
+
+	it('42. Verify changes queue works as expected.', () => {
+		var callbackCount = 0;
+		
+		var data = {
+			num: 0,
+			arr: [],			
+		}
+
+		var p = ObservableSlim.create(data, false, function(changes) {
+			callbackCount++;
+		})
+
+		ObservableSlim.queueChanges(p)
+		p.num++
+		p.arr.push({
+			test:p.num,
+		})
+		ObservableSlim.flushChanges(p)
+
+		expect(callbackCount).to.equal(1);
+	});
+
+	it('43. Verify that queueChanges and clearChanges both reset change number and fail to call observers', () => {
+		var callbackCount = 0;
+		
+		var data = {
+			num: 0,
+			arr: [],			
+		}
+		var p = ObservableSlim.create(data, false, function(changes) {
+			callbackCount++;
+		})
+
+		ObservableSlim.queueChanges(p)
+		p.arr.push({
+			test:p.num++,
+		})
+		ObservableSlim.clearChanges(p)
+		ObservableSlim.flushChanges(p)
+
+		ObservableSlim.queueChanges(p)
+		p.arr.push({
+			test:p.num++,
+		})
+		ObservableSlim.queueChanges(p)
+		ObservableSlim.flushChanges(p)
+
+		expect(callbackCount).to.equal(0);
+	});
+
+	it('44. Verify that cancelChanges stops queuing changes', () => {
+		var callbackCount = 0;
+		
+		var data = {
+			num: 0,
+			arr: [],			
+		}
+
+		var p = ObservableSlim.create(data, false, function(changes) {
+			callbackCount++;
+		})
+
+		ObservableSlim.queueChanges(p)
+		p.arr.push({
+			test:p.num++,
+		})
+		ObservableSlim.cancelChanges(p)
+		p.arr.push({
+			test:p.num++,
+		})
+		ObservableSlim.flushChanges(p)
+
+		expect(callbackCount).to.be.above(1);
+	})	
 };
