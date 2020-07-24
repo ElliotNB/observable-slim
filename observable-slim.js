@@ -686,8 +686,9 @@ var ObservableSlim = (function() {
 			var foundMatch = false;
 			while (i--) {
 				if (observables[i].parentProxy === proxy) {
-					observables[i].queueChanges = true;
 					foundMatch = true;
+					observables[i].queueChanges = true;
+					observables[i].changesQueue = [];
 					break;
 				}
 			};
@@ -707,8 +708,18 @@ var ObservableSlim = (function() {
 			while (i--) {
 				if (observables[i].parentProxy === proxy) {
 					observables[i].queueChanges = false;
-					observables[i].observers.forEach(o => o(observables[i].changesQueue))
 					foundMatch = true;
+
+					if (observables[i].changesQueue !== []) {
+						var changesCopy = observables[i].changesQueue.slice(0); // same copy as _notifyObserver so we ensure queue gets emptied
+						observables[i].changesQueue = [];
+
+						observables[i].observers
+							.forEach(function(observer){
+								observer(changesCopy)
+							})
+					}
+
 					break;
 				}
 			};
