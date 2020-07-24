@@ -710,7 +710,7 @@ var ObservableSlim = (function() {
 					observables[i].queueChanges = false;
 					foundMatch = true;
 
-					if (observables[i].changesQueue !== []) {
+					if (observables[i].changesQueue.length > 0) {
 						var changesCopy = observables[i].changesQueue.slice(0); // same copy as _notifyObserver so we ensure queue gets emptied
 						observables[i].changesQueue = [];
 
