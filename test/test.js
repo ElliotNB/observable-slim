@@ -796,6 +796,9 @@ function suite(proxy) {
 		})
 		ObservableSlim.flushChanges(p)
 
+		assert(function() { ObservableSlim.queueChanges({}); }, Error, "ObseravableSlim could not queue changes -- matching proxy not found.");
+		assert(function() { ObservableSlim.flushChanges({}); }, Error, "ObseravableSlim could not flush changes -- matching proxy not found.");
+		
 		expect(callbackCount).to.equal(1);
 	});
 
@@ -824,6 +827,8 @@ function suite(proxy) {
 		ObservableSlim.queueChanges(p)
 		ObservableSlim.flushChanges(p)
 
+		assert(function() { ObservableSlim.clearChanges({}); }, Error, "ObseravableSlim could not clear changes-- matching proxy not found.");
+
 		expect(callbackCount).to.equal(0);
 	});
 
@@ -848,6 +853,8 @@ function suite(proxy) {
 			test:p.num++,
 		})
 		ObservableSlim.flushChanges(p)
+
+		assert(function() { ObservableSlim.cancelChanges({}); }, Error, "ObseravableSlim could not cancel change queue -- matching proxy not found.");
 
 		expect(callbackCount).to.be.above(1);
 	})	
