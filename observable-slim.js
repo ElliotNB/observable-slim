@@ -693,7 +693,7 @@ var ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObseravableSlim could not queueChanges -- matching proxy not found.");
+			if (foundMatch == false) throw new Error("ObseravableSlim could not queue changes -- matching proxy not found.");
 		},
 
 		/*	Method: flushChanges
@@ -724,7 +724,7 @@ var ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObseravableSlim could not flush changes-- matching proxy not found.");
+			if (foundMatch == false) throw new Error("ObseravableSlim could not flush changes -- matching proxy not found.");
 		},
 
 		/*	Method: clearChanges
