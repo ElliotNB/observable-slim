@@ -827,7 +827,7 @@ function suite(proxy) {
 		ObservableSlim.queueChanges(p)
 		ObservableSlim.flushChanges(p)
 
-		assert(function() { ObservableSlim.clearChanges({}); }, Error, "ObseravableSlim could not clear changes-- matching proxy not found.");
+		assert(function() { ObservableSlim.clearChanges({}); }, Error, "ObseravableSlim could not clear changes -- matching proxy not found.");
 
 		expect(callbackCount).to.equal(0);
 	});
