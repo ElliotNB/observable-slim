@@ -551,16 +551,6 @@ var ObservableSlim = (function() {
 			// assign the observer function
 			if (typeof observer === "function") this.observe(proxy, observer);
 
-			// recursively loop over all nested objects on the proxy we've just created
-			// this will allow the top observable to observe any changes that occur on a nested object
-			(function iterate(proxy) {
-				var target = proxy.__getTarget;
-				var keys  = Object.keys(target);
-				for (var i = 0, l = keys.length; i < l; i++) {
-					var property = keys[i];
-					if (target[property] instanceof Object && target[property] !== null) iterate(proxy[property]);
-				}
-			})(proxy);
 
 			return proxy;
 
