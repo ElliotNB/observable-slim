@@ -36,7 +36,7 @@ var ObservableSlim = (function() {
 
 	/*	Function: _create
 				Private internal function that is invoked to create a new ES6 Proxy whose changes we can observe through
-				the Observerable.observe() method.
+				the Observable.observe() method.
 
 			Parameters:
 				target 				- required, plain JavaScript object that we want to observe for changes.
@@ -111,7 +111,7 @@ var ObservableSlim = (function() {
 			// if the observable is paused, then we don't want to execute any of the observer functions
 			if (observable.paused === true) return;
 
-			// execute observer functions on a 10ms settimeout, this prevents the observer functions from being executed
+			// execute observer functions on a 10ms setTimeout, this prevents the observer functions from being executed
 			// separately on every change -- this is necessary because the observer functions will often trigger UI updates
  			if (domDelay === true) {
 				setTimeout(function() {
@@ -290,7 +290,7 @@ var ObservableSlim = (function() {
 
 					var typeOfTargetProp = (typeof targetProp);
 
-					// determine if we're adding something new or modifying somethat that already existed
+					// determine if we're adding something new or modifying some that already existed
 					var type = "update";
 					if (typeOfTargetProp === "undefined") type = "add";
 
@@ -342,7 +342,7 @@ var ObservableSlim = (function() {
 
 						// if we didn't find an observable for this proxy, then that means .remove(proxy) was likely invoked
 						// so we no longer need to notify any observer function about the changes, but we still need to update the
-						// value of the underlying original objectm see below: target[property] = value;
+						// value of the underlying original objects see below: target[property] = value;
 						if (foundObservable) {
 
 							// loop over each proxy and see if the target for this change has any other proxies
@@ -364,7 +364,7 @@ var ObservableSlim = (function() {
 
 							// if the property being overwritten is an object, then that means this observable
 							// will need to stop monitoring this object and any nested objects underneath the overwritten object else they'll become
-							// orphaned and grow memory usage. we excute this on a setTimeout so that the clean-up process does not block
+							// orphaned and grow memory usage. we execute this on a setTimeout so that the clean-up process does not block
 							// the UI rendering -- there's no need to execute the clean up immediately
 							setTimeout(function() {
 								
@@ -496,7 +496,7 @@ var ObservableSlim = (function() {
 			observables.push(observable);
 		}
 
-		// store the proxy we've created so it isn't re-created unnecessairly via get handler
+		// store the proxy we've created so it isn't re-created unnecessarily via get handler
 		var proxyItem = {"target":target,"proxy":proxy,"observable":observable};
 
 		// if we have already created a Proxy for this target object then we add it to the corresponding array
@@ -524,7 +524,7 @@ var ObservableSlim = (function() {
 	return {
 		/*	Method:
 				Public method that is invoked to create a new ES6 Proxy whose changes we can observe
-				through the Observerable.observe() method.
+				through the Observable.observe() method.
 
 			Parameters
 				target - Object, required, plain JavaScript object that we want to observe for changes.
@@ -673,7 +673,7 @@ var ObservableSlim = (function() {
 
 		/*	Method: remove
 				This method will remove the observable and proxy thereby preventing any further callback observers for
-				changes occuring to the target object.
+				changes occurring to the target object.
 
 			Parameters:
 				proxy 	- the ES6 Proxy returned by the create() method.
