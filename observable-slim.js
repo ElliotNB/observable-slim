@@ -6,7 +6,7 @@
  * 	Licensed under the MIT license:
  * 	http://www.opensource.org/licenses/MIT
  *
- *	Observable Slim is a singleton that allows you to observe changes made to an object and any nested
+ *	Observable Slim is a function that allows you to observe changes made to an object and any nested
  *	children of that object. It is intended to assist with one-way data binding, that is, in MVC parlance,
  *	reflecting changes in the model to the view. Observable Slim aspires to be as lightweight and easily
  *	understood as possible. Minifies down to roughly 3000 characters.
@@ -716,7 +716,7 @@ var ObservableSlim = (function() {
 			}
 		}
 	};
-})();
+});
 
 // Export in a try catch to prevent this from erroring out on older browsers
 try { module.exports = ObservableSlim; } catch (err) {};
