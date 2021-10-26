@@ -774,7 +774,23 @@ function suite(proxy) {
 			expect(p.test.deeper.__getPath).to.equal("test.deeper");
 			expect(p.arr[0].test.__getPath).to.equal("arr.0.test");
 		}
-		
+
+	});
+
+	it('42. Array does not enumerate __length.', () => {
+		var largeArray = [];
+
+		for (var i = 0; i < 5; i++) {
+			largeArray.push({
+				"hello":"world"
+				,"foo":"bar"
+			});
+		}
+
+		var proxyArr = ObservableSlim.create(largeArray, false, function(changes) {});
+
+		var keys = Array.from(proxyArr.keys());
+		expect(keys.every(item => !Number.isNaN(item))).to.be.true;
 	});
 	
 };
