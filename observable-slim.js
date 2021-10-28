@@ -366,9 +366,8 @@ var ObservableSlim = (function() {
 							// will need to stop monitoring this object and any nested objects underneath the overwritten object else they'll become
 							// orphaned and grow memory usage. we execute this on a setTimeout so that the clean-up process does not block
 							// the UI rendering -- there's no need to execute the clean up immediately
-							setTimeout(function() {
-								
-								if (typeOfTargetProp === "object" && targetProp !== null) {
+							if (typeOfTargetProp === "object" && targetProp !== null) {
+								setTimeout(function() {
 
 									// check if the to-be-overwritten target property still exists on the target object
 									// if it does still exist on the object, then we don't want to stop observing it. this resolves
@@ -445,8 +444,8 @@ var ObservableSlim = (function() {
 										}
 
 									})(targetProp)
-								}
-							},10000);
+								},10000);
+							}
 						}
 
 						// TO DO: the next block of code resolves test case #29, but it results in poor IE11 performance with very large objects.
