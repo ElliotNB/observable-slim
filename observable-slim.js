@@ -61,8 +61,13 @@ var ObservableSlim = (function() {
 		// in order to accurately report the "previous value" of the "length" property on an Array
 		// we must use a helper property because intercepting a length change is not always possible as of 8/13/2018 in 
 		// Chrome -- the new `length` value is already set by the time the `set` handler is invoked
-		if (target instanceof Array) target.__length = target.length;
-		
+		if (target instanceof Array) {
+			if (!target.hasOwnProperty("__length"))
+				Object.defineProperty(target, "__length", { enumerable: false, value: target.length, writable: true });
+			else
+				target.__length = target.length;
+			}
+
 		var changes = [];
 
 		/*	Function: _getPath
