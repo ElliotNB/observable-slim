@@ -1,3 +1,5 @@
+const process = require('process');
+const path = require('path');
 const gulp = require('gulp');
 const uglify = require('gulp-uglify-es').default;
 const useref = require('gulp-useref');
@@ -13,6 +15,15 @@ const testPath = './test/test.js';
 const coverallsCoverageDirPath = './coverage';
 const coverallsCoverageLcovPath = `${coverallsCoverageDirPath}/lcov.info`;
 const coverallsBinPath = './node_modules/coveralls/bin/coveralls.js';
+const coverallsCommand = (process.platform === 'win32')
+// Windows (we have to resolve the paths).
+? `nyc report --reporter=lcov`
+    + ` && type ${path.resolve(coverallsCoverageLcovPath)} | ${path.resolve(coverallsBinPath)}`
+    + ` && rmdir /s /q ${path.resolve(coverallsCoverageDirPath)}`
+// Linux.
+: `nyc report --reporter=lcov`
+    + ` && cat ${coverallsCoverageLcovPath} | ${coverallsBinPath}`
+    + ` && rm -rf ${coverallsCoverageDirPath}`;
 
 gulp.task('default', (done) => gulp.src([observableSlimPath, proxyPath])
     .pipe(babel({
@@ -35,9 +46,7 @@ gulp.task('test', (done) => gulp.src([testPath])
     .on('end', done)
 );
 
-gulp.task('coveralls', shell.task([
-    `nyc report --reporter=lcov && cat ${coverallsCoverageLcovPath} | ${coverallsBinPath} && rm -rf ${coverallsCoverageDirPath}`
-]));
+gulp.task('coveralls', shell.task([coverallsCommand]));
 
 gulp.task('lint', (done) => gulp.src([observableSlimPath, proxyPath, testPath])
     .pipe(eslint())
