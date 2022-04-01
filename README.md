@@ -249,4 +249,4 @@ Array mutations **can** be observed through the use of the array mutation method
 
 ## Contributing
 
-Contributions are most welcome! Please be sure to run `gulp test` and `gulp lint` against your code before submitting a pull request.
+Contributions are most welcome! Please be sure to run `npm run test` and `npm run lint` against your code before submitting a pull request.

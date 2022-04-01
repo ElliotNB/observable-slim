@@ -4,9 +4,10 @@ node_js:
 before_script:
   - npm install
 script:
-  - gulp test
-  - gulp lint
-  - gulp coveralls
+  - npm run test
+  - npm run lint
+after_success:
+  - npm run coverage
 cache:
   directories:
     - "node_modules"
