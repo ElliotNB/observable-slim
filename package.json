@@ -30,8 +30,11 @@
       "@babel/preset-env"
     ]
   },
-  "nyc":{
-    "exclude": ["proxy.js","test"]
+  "nyc": {
+    "exclude": [
+      "proxy.js",
+      "test"
+    ]
   },
   "repository": {
     "type": "git",
