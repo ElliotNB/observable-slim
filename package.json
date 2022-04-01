@@ -22,6 +22,7 @@
   "scripts": {
     "test": "nyc --reporter=html --reporter=text mocha",
     "lint": "eslint \"**/*.js\"",
+    "lint:fix": "eslint \"**/*.js\" --fix",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "build": "gulp"
   },
@@ -30,8 +31,11 @@
       "@babel/preset-env"
     ]
   },
-  "nyc":{
-    "exclude": ["proxy.js","test"]
+  "nyc": {
+    "exclude": [
+      "proxy.js",
+      "test"
+    ]
   },
   "repository": {
     "type": "git",

@@ -46,7 +46,7 @@ var p = ObservableSlim.create(test, true, function(changes) {
 	console.log(JSON.stringify(changes));
 });
 
-p.hello = "world";   
+p.hello = "world";
 // Console log:
 // [{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello","jsonPointer":"/hello","proxy":{"hello":"world"}}]
 
@@ -54,32 +54,32 @@ p.hello = "WORLD";
 // Console log:
 // [{"type":"update","target":{"hello":"WORLD"},"property":"hello","newValue":"WORLD","previousValue":"world","currentPath":"hello","jsonPointer":"/hello","proxy":{"hello":"WORLD"}}]
 
-p.testing = {};   
+p.testing = {};
 // Console log:
 // [{"type":"add","target":{"hello":"WORLD","testing":{}},"property":"testing","newValue":{},"currentPath":"testing","jsonPointer":"/testing","proxy":{"hello":"WORLD","testing":{}}}]
 
-p.testing.blah = 42;   
+p.testing.blah = 42;
 // Console log:
 // [{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah","jsonPointer":"/testing/blah","proxy":{"blah":42}}]
 
-p.arr = [];   
+p.arr = [];
 // Console log:
 // [{"type":"add","target":{"hello":"WORLD","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr","jsonPointer":"/arr","proxy":{"hello":"WORLD","testing":{"blah":42},"arr":[]}}]
 
-p.arr.push("hello world");   
+p.arr.push("hello world");
 // Console log:
 // [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr.0","jsonPointer":"/arr/0","proxy":["hello world"]}]
 
-delete p.hello;  
+delete p.hello;
 // Console log:
 // [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"WORLD","currentPath":"hello","jsonPointer":"/hello","proxy":{"testing":{"blah":42},"arr":["hello world"]}}]
 
-p.arr.splice(0,1);   
+p.arr.splice(0,1);
 // Console log:
 // [{"type":"delete","target":[],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr.0","jsonPointer":"/arr/0","proxy":[]},
 // {"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr.length","jsonPointer":"/arr/length","proxy":[]}]
 
-console.log(JSON.stringify(test));   
+console.log(JSON.stringify(test));
 // Console log:
 // {"testing":{"blah":42},"arr":[]}
 
@@ -249,4 +249,9 @@ Array mutations **can** be observed through the use of the array mutation method
 
 ## Contributing
 
-Contributions are most welcome! Please be sure to run `npm run test` and `npm run lint` against your code before submitting a pull request.
+Contributions are most welcome!
+
+Please be sure to run the commands below against your code before submitting a pull request:
+- `npm run test`: run unit tests.
+- `npm run lint`: analyze the code to quickly find problems.
+- `npm run lint:fix`: fix the problems potentially fixable detected by `npm run lint`.
