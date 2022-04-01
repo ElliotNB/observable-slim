@@ -1,6 +1,6 @@
 # :eyes: Observable Slim
 
-[![Build Status](https://travis-ci.org/ElliotNB/observable-slim.svg?branch=master)](https://travis-ci.org/ElliotNB/observable-slim) [![Coverage Status](https://coveralls.io/repos/github/ElliotNB/observable-slim/badge.svg)](https://coveralls.io/github/ElliotNB/observable-slim) [![Monthly Downloads](https://img.shields.io/npm/dm/observable-slim.svg)](https://www.npmjs.com/package/observable-slim)
+[![Build Status](https://app.travis-ci.com/ElliotNB/observable-slim.svg?branch=master)](https://app.travis-ci.com/ElliotNB/observable-slim) [![Coverage Status](https://coveralls.io/repos/github/ElliotNB/observable-slim/badge.svg)](https://coveralls.io/github/ElliotNB/observable-slim) [![Monthly Downloads](https://img.shields.io/npm/dm/observable-slim.svg)](https://www.npmjs.com/package/observable-slim)
 
 https://github.com/elliotnb/observable-slim
 
