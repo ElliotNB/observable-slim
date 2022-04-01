@@ -1,50 +1,56 @@
-var gulp = require('gulp');
-var uglify = require('gulp-uglify-es').default;
-var gulpIf = require('gulp-if');
-var useref = require('gulp-useref');
-var rename = require('gulp-rename');
-var mocha = require('gulp-mocha');
-var chai = require('chai');
-var babel = require('gulp-babel');
-var eslint = require('gulp-eslint');
-var istanbul = require('gulp-istanbul');
-var gutil = require('gulp-util');
+const process = require('process');
+const path = require('path');
+const gulp = require('gulp');
+const uglify = require('gulp-uglify-es').default;
+const useref = require('gulp-useref');
+const rename = require('gulp-rename');
+const mocha = require('gulp-mocha');
+const babel = require('gulp-babel');
+const eslint = require('gulp-eslint');
+const shell = require('gulp-shell');
 
-gulp.task('default', function(){
-	return gulp.src(['observable-slim.js','proxy.js'])
-		.pipe(babel({
-            presets: ['@babel/preset-env']
-			,sourceType: "script" // prevent insertion of "use strict"
-        }))
-		.pipe(useref())
-		// Minifies only if it's a JavaScript file
-		.pipe(uglify())
-		//.on('error', function (err) { gutil.log(gutil.colors.red('[Error]'), err.toString()); })
-		// Add .min to the minified filename
-		.pipe(rename({ suffix: '.min' }))
-		// Write it to the current directory
-		.pipe(gulp.dest('./'))
-});
+const observableSlimPath = './observable-slim.js';
+const proxyPath = './proxy.js';
+const testPath = './test/test.js';
+const coverallsCoverageDirPath = './coverage';
+const coverallsCoverageLcovPath = `${coverallsCoverageDirPath}/lcov.info`;
+const coverallsBinPath = './node_modules/coveralls/bin/coveralls.js';
+const coverallsCommand = (process.platform === 'win32')
+// Windows (we have to resolve the paths).
+? `nyc report --reporter=lcov`
+    + ` && type ${path.resolve(coverallsCoverageLcovPath)} | ${path.resolve(coverallsBinPath)}`
+    + ` && rmdir /s /q ${path.resolve(coverallsCoverageDirPath)}`
+// Linux.
+: `nyc report --reporter=lcov`
+    + ` && cat ${coverallsCoverageLcovPath} | ${coverallsBinPath}`
+    + ` && rm -rf ${coverallsCoverageDirPath}`;
 
-gulp.task('pre-test', function () {
-	return gulp.src(['observable-slim.js'])
-	// Covering files
-	.pipe(istanbul())
-	// Force `require` to return covered files
-	.pipe(istanbul.hookRequire());
-});
+gulp.task('default', (done) => gulp.src([observableSlimPath, proxyPath])
+    .pipe(babel({
+        presets: ['@babel/preset-env'],
+        sourceType: 'script' // Prevent insertion of "use strict".
+    }))
+    .pipe(useref())
+    .pipe(uglify())
+    .pipe(rename({
+        suffix: '.min' // Add .min to the minified filename.
+    }))
+    .pipe(gulp.dest('./')) // Write it to the current directory.
+    .on('end', done)
+);
 
-gulp.task('test', ['pre-test'], function() {
-	return gulp.src(['test/test.js'])
-	.pipe(mocha({compilers:babel}))
-	// Creating the reports after tests ran
-    .pipe(istanbul.writeReports());
-});
+gulp.task('test', (done) => gulp.src([testPath])
+    .pipe(mocha({
+        compilers: babel
+    }))
+    .on('end', done)
+);
 
-gulp.task('lint', function() {
-	return gulp.src(['observable-slim.js','proxy.js','test/test.js'])
-	.pipe(eslint())
-	.pipe(eslint.format())
-	// Brick on failure to be super strict
-	.pipe(eslint.failOnError());
-});
+gulp.task('coveralls', shell.task([coverallsCommand]));
+
+gulp.task('lint', (done) => gulp.src([observableSlimPath, proxyPath, testPath])
+    .pipe(eslint())
+    .pipe(eslint.format())
+    .pipe(eslint.failOnError()) // Brick on failure to be super strict.
+    .on('end', done)
+);

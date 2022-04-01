@@ -3,10 +3,10 @@ node_js:
   - "8"
 before_script:
   - npm install
-script: 
+script:
   - gulp test
   - gulp lint
-  - npm run coveralls
+  - gulp coveralls
 cache:
   directories:
     - "node_modules"
