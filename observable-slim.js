@@ -66,7 +66,7 @@ var ObservableSlim = (function() {
 				Object.defineProperty(target, "__length", { enumerable: false, value: target.length, writable: true });
 			else
 				target.__length = target.length;
-			}
+		}
 
 		var changes = [];
 
