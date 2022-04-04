@@ -34,22 +34,23 @@ var ObservableSlim = (function() {
 		}, obj || self)
 	};
 
-	/*	Function: _create
-				Private internal function that is invoked to create a new ES6 Proxy whose changes we can observe through
-				the Observable.observe() method.
-
-			Parameters:
-				target 				- required, plain JavaScript object that we want to observe for changes.
-				domDelay 			- batch up changes on a 10ms delay so a series of changes can be processed in one DOM update.
-				originalObservable 	- object, the original observable created by the user, exists for recursion purposes,
-									  allows one observable to observe change on any nested/child objects.
-				originalPath 		- array of objects, each object having the properties 'target' and 'property' -- target referring to the observed object itself
-									  and property referring to the name of that object in the nested structure. the path of the property in relation to the target
-									  on the original observable, exists for recursion purposes, allows one observable to observe change on any nested/child objects.
-
-			Returns:
-				An ES6 Proxy object.
-	*/
+	/**
+	 * Create a new ES6 `Proxy` whose changes we can observe through the `observe()` method.
+	 * @param {object} target Plain object that we want to observe for changes.
+	 * @param {boolean|number} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
+	 * If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set
+	 * `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater
+	 * than zero, then it defines the DOM delay in milliseconds.
+	 * @param {function(ObservableSlimChange[])} [observer] Function that will be invoked when a change is made to the proxy of `target`.
+	 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
+	 * @param {object} originalObservable The original observable created by the user, exists for recursion purposes, allows one observable to observe
+	 * change on any nested/child objects.
+	 * @param {{target: object, property: string}[]} originalPath Array of objects, each object having the properties `target` and `property`:
+	 * `target` is referring to the observed object itself and `property` referring to the name of that object in the nested structure.
+	 * The path of the property in relation to the target on the original observable, exists for recursion purposes, allows one observable to observe
+	 * change on any nested/child objects.
+	 * @returns {ProxyConstructor} Proxy of the target object.
+	 */
 	var _create = function(target, domDelay, originalObservable, originalPath) {
 
 		var observable = originalObservable || null;
@@ -70,17 +71,14 @@ var ObservableSlim = (function() {
 
 		var changes = [];
 
-		/*	Function: _getPath
-				Returns a string of the nested path (in relation to the top-level observed object)
-				of the property being modified or deleted.
-			Parameters:
-				target - the object whose property is being modified or deleted.
-				property - the string name of the property
-				jsonPointer - optional, set to true if the string path should be formatted as a JSON pointer.
-
-			Returns:
-				String of the nested path (e.g., hello.testing.1.bar or, if JSON pointer, /hello/testing/1/bar
-		*/
+		/**
+		 * Returns a string of the nested path (in relation to the top-level observed object) of the property being modified or deleted.
+		 * @param {object} target Plain object that we want to observe for changes.
+		 * @param {string} property Property name.
+		 * @param {boolean} [jsonPointer] Set to `true` if the string path should be formatted as a JSON pointer rather than with the dot notation
+		 * (`false` as default).
+		 * @returns {string} Nested path (e.g., `hello.testing.1.bar` or, if JSON pointer, `/hello/testing/1/bar`).
+		 */
 		var _getPath = function(target, property, jsonPointer) {
 
 			var fullPath = "";
@@ -116,9 +114,11 @@ var ObservableSlim = (function() {
 			// if the observable is paused, then we don't want to execute any of the observer functions
 			if (observable.paused === true) return;
 
+			var domDelayIsNumber = typeof domDelay === 'number';
+
 			// execute observer functions on a 10ms setTimeout, this prevents the observer functions from being executed
 			// separately on every change -- this is necessary because the observer functions will often trigger UI updates
- 			if (domDelay === true) {
+ 			if (domDelayIsNumber || domDelay === true) {
 				setTimeout(function() {
 					if (numChanges === changes.length) {
 
@@ -131,7 +131,7 @@ var ObservableSlim = (function() {
 						for (var i = 0; i < observable.observers.length; i++) observable.observers[i](changesCopy);
 
 					}
-				},10);
+				}, (domDelayIsNumber && domDelay > 0) ? domDelay : 10);
 			} else {
 
 				// we create a copy of changes before passing it to the observer functions because even if the observer function
@@ -542,9 +542,10 @@ var ObservableSlim = (function() {
 		/**
 		 * Create a new ES6 `Proxy` whose changes we can observe through the `observe()` method.
 		 * @param {object} target Plain object that we want to observe for changes.
-		 * @param {boolean} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
+		 * @param {boolean|number} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
 		 * If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set
-		 * `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance).
+		 * `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater
+		 * than zero, then it defines the DOM delay in milliseconds.
 		 * @param {function(ObservableSlimChange[])} [observer] Function that will be invoked when a change is made to the proxy of `target`.
 		 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
 		 * @returns {ProxyConstructor} Proxy of the target object.

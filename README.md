@@ -29,16 +29,23 @@ $ npm install observable-slim --save
 
 ## Usage
 
-
 ### Create an observer
 
-The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 Proxy whose changes we can observe. The `create` method accepts three parameters:
+The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 `Proxy` whose changes we can observe. The `create` method accepts three parameters:
 
-1. `target` - Object, required, plain JavaScript object that we want to observe for changes.
-2. `domDelay` - Boolean, required, if true, then Observable Slim will batch up observed changes to `target` on a 10ms delay (via `setTimeout`). If false, then `observer` will be immediately invoked after each individual change made to `target`. It is helpful to set `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance).
-3. `observer` - Function, optional, will be invoked when a change is made to the proxy of `target`. When invoked, the `observer` function is passed a single argument -- an array detailing each change that has been made (see below).
+1. `target` (`object`, *required*): plain object that we want to observe for changes.
+2. `domDelay` (`boolean|number`, *required*): if `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`). If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater than zero, then it defines the DOM delay in milliseconds.
+3. `observer` (`function(ObservableSlimChange[])`, *optional*): function that will be invoked when a change is made to the proxy of `target`. When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made. The `ObservableSlimChange` object structure is like below:
+	- `type` (`"add"|"update"|"delete"`, *required*): change type.
+	- `property` (`string`, *required*): property name.
+	- `currentPath` (`string`, *required*): property path with the dot notation (e.g. `foo.0.bar`).
+	- `jsonPointer` (`string`, *required*): property path with the JSON pointer syntax (e.g. `/foo/0/bar`). See [](https://datatracker.ietf.org/doc/html/rfc6901).
+	- `target` (`object`, *required*): target object.
+	- `proxy` (`Proxy`, *required*): proxy of the target object.
+	- `newValue` (`*`, *required*): new value of the property.
+	- `previousValue` (`*`, *optional*): previous value of the property.
 
-The `create` method will return a standard ES6 Proxy.
+The `create` method will return a standard ES6 `Proxy`.
 
 ```javascript
 var test = {};
@@ -226,9 +233,9 @@ console.log(p.test.deeper.__getPath); // logs "test.deeper"
 
 ## Requirements
 
-For full functionality, Observable Slim requires [ES6 Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
+For full functionality, Observable Slim requires [ES6 `Proxy`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
 
-As of August 2017, ES6 Proxy is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 Proxy.
+As of August 2017, ES6 `Proxy` is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 `Proxy`.
 
 ### ES5 Proxy polyfill (IE11 support) ###
 
@@ -238,7 +245,7 @@ The forked version of the Proxy polyfill (contained within this repo) differs fr
 
 #### Limitations ####
 
-Because the Proxy polyfill does not (and will never) fully emulate native ES6 Proxy, there are certain use cases that will not work when using Observable Slim with the Proxy polyfill:
+Because the Proxy polyfill does not (and will never) fully emulate native ES6 `Proxy`, there are certain use cases that will not work when using Observable Slim with the Proxy polyfill:
 
 1. Object properties must be known at creation time. New properties cannot be added later.
 2. Modifications to `.length` cannot be observed.
