@@ -1,0 +1,11 @@
+{
+	"include": ["observable-slim.js"],
+	"compilerOptions": {
+		"allowJs": true,
+		"declaration": true,
+		"declarationMap": false,
+		"emitDeclarationOnly": true,
+		"esModuleInterop": true,
+		"outDir": ""
+	}
+}
