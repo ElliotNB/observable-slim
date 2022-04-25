@@ -260,5 +260,6 @@ Contributions are most welcome!
 
 Please be sure to run the commands below against your code before submitting a pull request:
 - `npm run test`: run unit tests.
+- `npm run type`: generate the `d.ts` file for TypeScript declarations.
 - `npm run lint`: analyze the code to quickly find problems.
 - `npm run lint:fix`: fix the problems potentially fixable detected by `npm run lint`.
