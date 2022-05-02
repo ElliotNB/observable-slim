@@ -39,7 +39,7 @@ The `create` method is the starting point for using Observable Slim. It is invok
 	- `type` (`"add"|"update"|"delete"`, *required*): change type.
 	- `property` (`string`, *required*): property name.
 	- `currentPath` (`string`, *required*): property path with the dot notation (e.g. `foo.0.bar`).
-	- `jsonPointer` (`string`, *required*): property path with the JSON pointer syntax (e.g. `/foo/0/bar`). See [](https://datatracker.ietf.org/doc/html/rfc6901).
+	- `jsonPointer` (`string`, *required*): property path with the JSON pointer syntax (e.g. `/foo/0/bar`). See [RFC 6901](https://datatracker.ietf.org/doc/html/rfc6901).
 	- `target` (`object`, *required*): target object.
 	- `proxy` (`Proxy`, *required*): proxy of the target object.
 	- `newValue` (`*`, *required*): new value of the property.
