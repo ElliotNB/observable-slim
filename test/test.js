@@ -808,4 +808,25 @@ function suite(proxy) {
 		expect(keys.every(item => !Number.isNaN(item))).to.be.true;
 	});
 
+	it('43. Refresh __length when creating a second observable on the same array.', () => {
+		// Start with an array and create the first observable, which defines __length
+		var arr = [1, 2, 3];
+		var p1 = ObservableSlim.create(arr, false, function () {});
+
+		// Sanity checks: __length was defined and matches current length
+		expect(arr.hasOwnProperty('__length')).to.equal(true);
+		expect(arr.__length).to.equal(3);
+
+		// Mutate the array directly (not via proxy) so __length becomes stale
+		arr.push(4, 5); // arr.length is now 5, but __length is still 3
+		expect(arr.length).to.equal(5);
+		expect(arr.__length).to.equal(3);
+
+		// Create a second observable for the same array; this should hit the 'else' and refresh __length
+		var p2 = ObservableSlim.create(arr, false, function () {});
+
+		// __length should now be updated to reflect the current array length
+		expect(arr.__length).to.equal(5);
+	});
+
 };
