@@ -444,7 +444,7 @@ const ObservableSlim = (function() {
 
 											// if there are no more observables assigned to the target object, then we can remove
 											// the target object altogether. this is necessary to prevent growing memory consumption particularly with large data sets
-											if (currentTargetProxy.length == 0) {
+											if (currentTargetProxy.length === 0) {
 												// targetsProxy.splice(c,1);
 												targets[c] = null;
 											}
@@ -617,7 +617,7 @@ const ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObservableSlim could not pause observable -- matching proxy not found.");
+			if (foundMatch === false) throw new Error("ObservableSlim could not pause observable -- matching proxy not found.");
 		},
 
 		/**
@@ -636,7 +636,7 @@ const ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObservableSlim could not resume observable -- matching proxy not found.");
+			if (foundMatch === false) throw new Error("ObservableSlim could not resume observable -- matching proxy not found.");
 		},
 
 		/**
@@ -657,7 +657,7 @@ const ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObservableSlim could not pause changes on observable -- matching proxy not found.");
+			if (foundMatch === false) throw new Error("ObservableSlim could not pause changes on observable -- matching proxy not found.");
 		},
 
 		/**
@@ -676,7 +676,7 @@ const ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObservableSlim could not resume changes on observable -- matching proxy not found.");
+			if (foundMatch === false) throw new Error("ObservableSlim could not resume changes on observable -- matching proxy not found.");
 		},
 
 		/**
