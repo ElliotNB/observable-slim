@@ -15,12 +15,11 @@ const ObservableSlim = (function() {
 	const paths = [];
 	// An array that stores all of the observables created through the public create() method below.
 	const observables = [];
-	// An array of all the objects that we have assigned Proxies to
-	const targets = [];
-
-	// An array of arrays containing the Proxies created for each target object. targetsProxy is index-matched with
-	// 'targets' -- together, the pair offer a Hash table where the key is not a string nor number, but the actual target object
-	const targetsProxy = [];
+	
+	// WeakMap mapping each observed target object to array of proxy records for that target.
+	// Each record is { target, proxy, observable }. Average O(1) get/set/delete (hash lookups),
+	// also allows entries to be garbage-collected automatically when a target becomes unreachable.
+	const targetToProxies = new WeakMap();
 
 	// this variable tracks duplicate proxies assigned to the same target.
 	// the 'set' handler below will trigger the same change on all other Proxies tracking the same target.
@@ -183,15 +182,12 @@ const ObservableSlim = (function() {
 					// if we've found a proxy nested on the object, then we want to retrieve the original object behind that proxy
 					if (targetProp.__isProxy === true) targetProp = targetProp.__getTarget;
 
-					// if the object accessed by the user (targetProp) already has a __targetPosition AND the object
-					// stored at target[targetProp.__targetPosition] is not null, then that means we are already observing this object
-					// we might be able to return a proxy that we've already created for the object
-					if (targetProp.__targetPosition > -1 && targets[targetProp.__targetPosition] !== null) {
-
-						// loop over the proxies that we've created for this object
-						const ttp = targetsProxy[targetProp.__targetPosition];
+					// Check whether this nested object already has proxies with an O(1) lookup. If records 
+					// exist (ttp), try to reuse the proxy that belongs to this observable instead of creating 
+					// a duplicate.
+					const ttp = targetToProxies.get(targetProp);
+					if (ttp && ttp.length) {
 						for (let i = 0, l = ttp.length; i < l; i++) {
-
 							// if we find a proxy that was setup for this particular observable, then return that proxy
 							if (observable === ttp[i].observable) {
 								return ttp[i].proxy;
@@ -219,16 +215,13 @@ const ObservableSlim = (function() {
 					dupProxy = null;
 				}
 
-				// in order to report what the previous value was, we must make a copy of it before it is deleted
-				const previousValue = Object.assign({}, target);
-
 				// record the deletion that just took place
 				changes.push({
 					"type":"delete"
 					,"target":target
 					,"property":property
 					,"newValue":null
-					,"previousValue":previousValue[property]
+					,"previousValue":target[property]
 					,"currentPath":_getPath(target, property)
 					,"jsonPointer":_getPath(target, property, true)
 					,"proxy":proxy
@@ -239,11 +232,8 @@ const ObservableSlim = (function() {
 					// perform the delete that we've trapped if changes are not paused for this observable
 					if (!observable.changesPaused) delete target[property];
 
-					let a = 0, l = targets.length;
-					for (; a < l; a++) if (target === targets[a]) break;
-
 					// loop over each proxy and see if the target for this change has any other proxies
-					const currentTargetProxy = targetsProxy[a] || [];
+					const currentTargetProxy = targetToProxies.get(target) || [];
 
 					let b = currentTargetProxy.length;
 					while (b--) {
@@ -332,18 +322,9 @@ const ObservableSlim = (function() {
 
 						foundObservable = false;
 
-						const targetPosition = target.__targetPosition;
-						let z = targetsProxy[targetPosition].length;
-
-						// find the parent target for this observable -- if the target for that observable has not been removed
-						// from the targets array, then that means the observable is still active and we should notify the observers of this change
-						while (z--) {
-							if (observable === targetsProxy[targetPosition][z].observable) {
-								if (targets[targetsProxy[targetPosition][z].observable.parentTarget.__targetPosition] !== null) {
-									foundObservable = true;
-									break;
-								}
-							}
+						// O(1) check that this observable is still active by verifying its parentTarget is still tracked
+						if (targetToProxies.has(observable.parentTarget)) {
+							foundObservable = true;
 						}
 
 						// if we didn't find an observable for this proxy, then that means .remove(proxy) was likely invoked
@@ -352,7 +333,7 @@ const ObservableSlim = (function() {
 						if (foundObservable) {
 
 							// loop over each proxy and see if the target for this change has any other proxies
-							const currentTargetProxy = targetsProxy[targetPosition];
+							const currentTargetProxy = targetToProxies.get(target) || [];
 							for (let b = 0, l = currentTargetProxy.length; b < l; b++) {
 								// if the same target has a different proxy
 								if (currentTargetProxy[b].proxy !== proxy) {
@@ -420,17 +401,10 @@ const ObservableSlim = (function() {
 										}
 
 										// if there are any existing target objects (objects that we're already observing)...
-										let c = -1;
-										for (let i = 0, l = targets.length; i < l; i++) {
-											if (obj === targets[i]) {
-												c = i;
-												break;
-											}
-										}
-										if (c > -1) {
+										if (targetToProxies.has(obj)) {
 
 											// ...then we want to determine if the observables for that object match our current observable
-											const currentTargetProxy = targetsProxy[c];
+											const currentTargetProxy = targetToProxies.get(obj);
 											let d = currentTargetProxy.length;
 
 											while (d--) {
@@ -445,8 +419,7 @@ const ObservableSlim = (function() {
 											// if there are no more observables assigned to the target object, then we can remove
 											// the target object altogether. this is necessary to prevent growing memory consumption particularly with large data sets
 											if (currentTargetProxy.length === 0) {
-												// targetsProxy.splice(c,1);
-												targets[c] = null;
+												targetToProxies.delete(obj);
 											}
 										}
 
@@ -483,45 +456,31 @@ const ObservableSlim = (function() {
 			}
 		}
 
-		const __targetPosition = target.__targetPosition;
-		if (!(__targetPosition > -1)) {
-			Object.defineProperty(target, "__targetPosition", {
-				value: targets.length
-				,writable: false
-				,enumerable: false
-				,configurable: false
-			});
-		}
-
 		// create the proxy that we'll use to observe any changes
 		const proxy = new Proxy(target, handler);
 
 		// we don't want to create a new observable if this function was invoked recursively
 		if (observable === null) {
-			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false,"path":path,"changesPaused":false};
+			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false,"path":path,"changesPaused":false,"proxyRefs":[]};
 			observables.push(observable);
 		}
 
 		// store the proxy we've created so it isn't re-created unnecessarily via get handler
 		const proxyItem = {"target":target,"proxy":proxy,"observable":observable};
 
-		// if we have already created a Proxy for this target object then we add it to the corresponding array
-		// on targetsProxy (targets and targetsProxy work together as a Hash table indexed by the actual target object).
-		if (__targetPosition > -1) {
+		// Keep a per-observable backreference to every proxy we create.
+		// remove() uses this to detach the observable from all of its proxies in O(k) time,
+		// where k = number of proxies for this observable.
+		if (observable.proxyRefs) observable.proxyRefs.push(proxyItem);
 
-			// the targets array is set to null for the position of this particular object, then we know that
-			// the observable was removed some point in time for this object -- so we need to set the reference again
-			if (targets[__targetPosition] === null) {
-				targets[__targetPosition] = target;
-			}
-
-			targetsProxy[__targetPosition].push(proxyItem);
-
-		// else this is a target object that we had not yet created a Proxy for, so we must add it to targets,
-		// and push a new array on to targetsProxy containing the new Proxy
+		// Track proxies by *target object* using a WeakMap for O(1) average get/set.
+		// The target object itself is the key. The value is the array of { target, proxy, observable } records.
+		// WeakMap entries are garbage-collected when the target becomes unreachable, preventing leaks.
+		// On creation, append to the existing list for this target or initialize a new one.
+		if (targetToProxies.has(target)) {
+			targetToProxies.get(target).push(proxyItem);
 		} else {
-			targets.push(target);
-			targetsProxy.push([proxyItem]);
+			targetToProxies.set(target, [proxyItem]);
 		}
 
 		return proxy;
@@ -698,24 +657,27 @@ const ObservableSlim = (function() {
 				}
 			};
 
-			let a = targetsProxy.length;
-			while (a--) {
-				let b = targetsProxy[a].length;
-				while (b--) {
-					if (targetsProxy[a][b].observable === matchedObservable) {
-						targetsProxy[a].splice(b,1);
-
-						// if there are no more proxies for this target object
-						// then we null out the position for this object on the targets array
-						// since we are essentially no longer observing this object.
-						// we do not splice it off the targets array, because if we re-observe the same
-						// object at a later time, the property __targetPosition cannot be redefined.
-						if (targetsProxy[a].length === 0) {
-							targets[a] = null;
-						};
+			// Efficient removal using per-observable proxy references (O(k) where k is proxies for this observable).
+			if (foundMatch === true && matchedObservable && matchedObservable.proxyRefs) {
+				let list = matchedObservable.proxyRefs;
+				let i = list.length;
+				while (i--) {
+					const item = list[i];
+					const arr = targetToProxies.get(item.target);
+					if (arr) {
+						let j = arr.length;
+						while (j--) {
+							if (arr[j].observable === matchedObservable) {
+								arr.splice(j,1);
+							}
+						}
+						if (arr.length === 0) {
+							targetToProxies.delete(item.target);
+						}
 					}
-				};
-			};
+				}
+				matchedObservable.proxyRefs.length = 0;
+			}
 
 			if (foundMatch === true) {
 				observables.splice(c,1);
