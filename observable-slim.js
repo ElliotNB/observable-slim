@@ -319,6 +319,13 @@ const ObservableSlim = (function() {
 						// but only as long as changes have not been paused
 						if (!observable.changesPaused) target[property] = value;
 
+						// Ensure this observable tracks the assigned object (no deep walk).
+						if (value && typeof value === "object") {
+							// Triggers `get` trap to _create(value, domDelay, observable, newPath)
+							// which registers a proxy for 'value' under this observable.
+							void proxy[property];
+						}
+
 
 						foundObservable = false;
 
@@ -427,22 +434,6 @@ const ObservableSlim = (function() {
 								}
 							},10000);
 						}
-
-						// TO DO: the next block of code resolves test case #29, but it results in poor IE11 performance with very large objects.
-						// UPDATE: need to re-evaluate IE11 performance due to major performance overhaul from 12/23/2018.
-						//
-						// if the value we've just set is an object, then we'll need to iterate over it in order to initialize the
-						// observers/proxies on all nested children of the object
-						/* if (value instanceof Object && value !== null) {
-							(function iterate(proxy) {
-								var target = proxy.__getTarget;
-								var keys = Object.keys(target);
-								for (var i = 0, l = keys.length; i < l; i++) {
-									var property = keys[i];
-									if (target[property] instanceof Object && target[property] !== null) iterate(proxy[property]);
-								};
-							})(proxy[property]);
-						}; */
 
 					};
 

@@ -571,7 +571,7 @@ function suite(proxy) {
 
 	});
 
-	it.skip('29. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
+	it('29. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
 
 		var firstObservableTriggered = 0;
 		var secondObservableTriggered = 0;
