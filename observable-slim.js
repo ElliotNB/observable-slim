@@ -616,7 +616,7 @@ var ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObseravableSlim could not pause observable -- matching proxy not found.");
+			if (foundMatch == false) throw new Error("ObservableSlim could not pause observable -- matching proxy not found.");
 		},
 
 		/**
@@ -635,7 +635,7 @@ var ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObseravableSlim could not resume observable -- matching proxy not found.");
+			if (foundMatch == false) throw new Error("ObservableSlim could not resume observable -- matching proxy not found.");
 		},
 
 		/**
@@ -656,7 +656,7 @@ var ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObseravableSlim could not pause changes on observable -- matching proxy not found.");
+			if (foundMatch == false) throw new Error("ObservableSlim could not pause changes on observable -- matching proxy not found.");
 		},
 
 		/**
@@ -675,7 +675,7 @@ var ObservableSlim = (function() {
 				}
 			};
 
-			if (foundMatch == false) throw new Error("ObseravableSlim could not resume changes on observable -- matching proxy not found.");
+			if (foundMatch == false) throw new Error("ObservableSlim could not resume changes on observable -- matching proxy not found.");
 		},
 
 		/**
