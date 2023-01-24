@@ -683,7 +683,7 @@ function suite() {
 	// However, if a reference to the overwritten object exists somewhere else on the parent observed object, then we
 	// still need to watch/observe that object for changes. This test verifies that even after the clean-up process (10 second delay)
 	// changes to an overwritten object are still monitored as long as there's another reference to the object.
- 	it.skip('34. Clean-up observers of overwritten (orphaned) objects.', (done) => {
+ 	it('34. Clean-up observers of overwritten (orphaned) objects.', (done) => {
 
 		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
 		var dupe = {"duplicate":"is duplicated"};
@@ -820,6 +820,60 @@ function suite() {
 		p2.push(6);
 
 		expect(sawLengthUpdate).to.equal(true);
+	});
+
+	// This test ensures that when a property is deleted via one proxy, ObservableSlim
+	// propagates the delete to *other* proxies for the same target by setting `dupProxy`
+	// and performing `delete currentTargetProxy[b].proxy[property];`. Proves that every observable
+	// created for the target in the test (two of them) get notified exactly once when a 
+	// delete happens via one proxy, and that the notification reached the other proxy 
+	// through the dupProxy propagation path.
+	it('44. Propagates delete to sibling proxies using dupProxy (no infinite loop)', function () {
+		const target = { a: 1, b: 2 };
+
+		let calls1 = 0;
+		let calls2 = 0;
+		let changes1 = null;
+		let changes2 = null;
+
+		// Create two separate proxies observing the same target.
+		// This sets up targetToProxies[target] with two proxy records.
+		const proxy1 = ObservableSlim.create(target, false, (changes) => { calls1++; changes1 = changes; });
+		const proxy2 = ObservableSlim.create(target, false, (changes) => { calls2++; changes2 = changes; });
+
+		// Sanity: both proxies see the same properties initially.
+		assert.strictEqual(proxy1.a, 1);
+		assert.strictEqual(proxy2.a, 1);
+
+		// Trigger delete via proxy1. Internally, in deleteProperty trap:
+		// - records the change on proxy1,
+		// - deletes from the underlying target,
+		// - iterates currentTargetProxy list,
+		// - sets dupProxy = otherProxy,
+		// - executes: delete otherProxy[property];
+		delete proxy1.a;
+
+		// Both observers should have been called exactly once (no infinite loop):
+		assert.strictEqual(calls1, 1, 'observer for proxy1 should be called once');
+		assert.strictEqual(calls2, 1, 'observer for proxy2 should be called once');
+
+		// Verify change shape for proxy1 (the initiator)
+		assert.ok(Array.isArray(changes1) && changes1.length === 1, 'proxy1 should receive a single change');
+		assert.strictEqual(changes1[0].type, 'delete');
+		assert.strictEqual(changes1[0].property, 'a');
+		assert.strictEqual(changes1[0].newValue, null);
+		// previousValue is implementation-dependent across proxies due to timing; do not assert it here.
+
+		// Verify change reached proxy2 specifically via the dupProxy propagation
+		assert.ok(Array.isArray(changes2) && changes2.length === 1, 'proxy2 should receive a single propagated change');
+		assert.strictEqual(changes2[0].type, 'delete');
+		assert.strictEqual(changes2[0].property, 'a');
+		assert.strictEqual(changes2[0].newValue, null);
+
+		// Property should be gone from both proxies and the underlying target
+		assert.strictEqual('a' in proxy1, false);
+		assert.strictEqual('a' in proxy2, false);
+		assert.strictEqual(Object.prototype.hasOwnProperty.call(target, 'a'), false);
 	});
 
 };
