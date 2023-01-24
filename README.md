@@ -237,12 +237,6 @@ For full functionality, Observable Slim requires [ES6 `Proxy`](https://developer
 
 As of August 2017, ES6 `Proxy` is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 `Proxy`.
 
-### ES5 Proxy polyfill (IE11 support) ###
-
-ObservableSlim now offers limited support for ES5 browsers or browsers without native Proxy (most motably IE11) through the integration of a forked version of the [Google Chrome Proxy polyfill](https://github.com/GoogleChrome/proxy-polyfill).
-
-The forked version of the Proxy polyfill (contained within this repo) differs from the original Polyfill by adding support for the array mutation methods: `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, and `reverse`.
-
 #### Limitations ####
 
 Because the Proxy polyfill does not (and will never) fully emulate native ES6 `Proxy`, there are certain use cases that will not work when using Observable Slim with the Proxy polyfill:
