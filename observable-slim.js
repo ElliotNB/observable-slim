@@ -6,10 +6,17 @@
  * 	Licensed under the MIT license:
  * 	http://www.opensource.org/licenses/MIT
  *
- *	Observable Slim is a singleton that allows you to observe changes made to an object and any nested
- *	children of that object. It is intended to assist with one-way data binding, that is, in MVC parlance,
- *	reflecting changes in the model to the view. Observable Slim aspires to be as lightweight and easily
- *	understood as possible. Minifies down to roughly 3000 characters.
+ *	Observable Slim is a small, dependency-free utility that watches plain objects and arrays --
+ *	including all nested children -- using ES6 Proxies. It mirrors your data and emits a compact
+ *	stream of structured change records (add / update / delete) that include the property name,
+ *	dot-path and RFC6901 JSON Pointer, previous/new values, and the originating proxy.
+ *
+ *	Designed for state management and UI data binding, it supports batched notifications (`domDelay`),
+ *	pausing/resuming observers, dry-run change blocking (`pauseChanges`), and safe teardown (`remove`).
+ *
+ *	Internals use Symbols and WeakMaps for collision-free introspection, memory-safe tracking, 
+ *	multiple proxies per target, and accurate array index/length reporting. Keep your app small and 
+ *	predictable while getting reliable deep change tracking.
  */
 const ObservableSlim = (function() {
 	const paths = [];
@@ -20,6 +27,36 @@ const ObservableSlim = (function() {
 	// Each record is { target, proxy, observable }. Average O(1) get/set/delete (hash lookups),
 	// also allows entries to be garbage-collected automatically when a target becomes unreachable.
 	const targetToProxies = new WeakMap();
+
+	// --- Internal "slots" (Symbols) ---
+	// We use Symbols as private capability keys recognized by the proxy `get` trap.
+	// Compared to the legacy magic string keys like "__getTarget", Symbols:
+	//   - cannot collide with user-defined properties (they're unique by identity),
+	//   - are non-enumerable in normal iteration (won’t appear in Object.keys, JSON, etc.),
+	//   - provide opt-in access: only code holding the exact Symbol instance can trigger
+	//     the special behavior.
+	//
+	// Slots provided:
+	//   - S_IS_PROXY : brand check.     Reading proxy[S_IS_PROXY] => returns true if object is a proxy created by ObservableSlim
+	//   - S_TARGET   : unwrap target.   Reading proxy[S_TARGET]   => returns the original object (the target of the proxy)
+	//   - S_PARENT   : parent accessor. proxy[S_PARENT](i)        => return the parent object from the perspective of the top-level observable
+	//   - S_PATH     : path accessor.   proxy[S_PATH]             => dotted path from top-level observable
+	//
+	// Most app code should prefer the static helpers (ObservableSlim.isProxy/getTarget/getParent/getPath)
+	// which avoid re-entering traps and use WeakMaps internally. The Symbols are exposed at 
+	// ObservableSlim.symbols for advanced/capability-style use, and must be accessed with bracket 
+	// notation (e.g., proxy[ObservableSlim.symbols.TARGET]).
+	// Note: Symbol identity must match exactly; always use the exported Symbols.
+	const S_IS_PROXY = Symbol('ObservableSlim.isProxy');
+	const S_TARGET   = Symbol('ObservableSlim.target');
+	const S_PARENT   = Symbol('ObservableSlim.parent');
+	const S_PATH     = Symbol('ObservableSlim.path');
+
+	// Fast backreference: proxy -> { target, observable, path } (O(1) lookups)
+	const proxyToRecord = new WeakMap();
+
+	// Create a WeakMap for tracking Array lengths -- involved with determining what changes have occurred to an Array
+	const arrayLength = new WeakMap();
 
 	// this variable tracks duplicate proxies assigned to the same target.
 	// the 'set' handler below will trigger the same change on all other Proxies tracking the same target.
@@ -59,13 +96,11 @@ const ObservableSlim = (function() {
 		paths.push(path);
 
 		// in order to accurately report the "previous value" of the "length" property on an Array
-		// we must use a helper property because intercepting a length change is not always possible as of 8/13/2018 in
-		// Chrome -- the new `length` value is already set by the time the `set` handler is invoked
-		if (target instanceof Array) {
-			if (!target.hasOwnProperty("__length"))
-				Object.defineProperty(target, "__length", { enumerable: false, value: target.length, writable: true });
-			else
-				target.__length = target.length;
+		// we track lengths in a WeakMap. This is necessary because because intercepting a length change 
+		// is not always possible in Chromium browsers -- the new `length` value is already set by the 
+		// time the `set` handler is invoked
+		if (Array.isArray(target)) {
+			arrayLength.set(target, target.length);
 		}
 
 		let changes = [];
@@ -73,7 +108,7 @@ const ObservableSlim = (function() {
 		/**
 		 * Returns a string of the nested path (in relation to the top-level observed object) of the property being modified or deleted.
 		 * @param {object} target Plain object that we want to observe for changes.
-		 * @param {string} property Property name.
+		 * @param {string|symbol} property Property name (or internal symbol used for introspection).
 		 * @param {boolean} [jsonPointer] Set to `true` if the string path should be formatted as a JSON pointer rather than with the dot notation
 		 * (`false` as default).
 		 * @returns {string} Nested path (e.g., `hello.testing.1.bar` or, if JSON pointer, `/hello/testing/1/bar`).
@@ -147,25 +182,25 @@ const ObservableSlim = (function() {
 		const handler = {
 			get: function(target, property) {
 
-				// implement a simple check for whether or not the object is a proxy, this helps the .create() method avoid
-				// creating Proxies of Proxies.
-				if (property === "__getTarget") {
+				// Symbol-based, collision-proof internals.
+				if (property === S_TARGET) {
 					return target;
-				} else if (property === "__isProxy") {
+				} else if (property === S_IS_PROXY) {
 					return true;
 				// from the perspective of a given observable on a parent object, return the parent object of the given nested object
-				} else if (property === "__getParent") {
+				} else if (property === S_PARENT) {
 					return function(i) {
 						if (typeof i === "undefined") i = 1;
-						const parentPath = _getPath(target, "__getParent").split(".");
+						const parentPath = _getPath(target, S_PARENT).split(".");
 						parentPath.splice(-(i+1),(i+1));
 						return _getProperty(observable.parentProxy, parentPath.join("."));
 					}
 				// return the full path of the current object relative to the parent observable
-				} else if (property === "__getPath") {
-					// strip off the 12 characters for ".__getParent"
-					const parentPath = _getPath(target, "__getParent");
-					return parentPath.slice(0, -12);
+				} else if (property === S_PATH) {
+					// strip off the trailing ".<symbol>" that _getPath appends when asked for S_PARENT
+					const parentPath = _getPath(target, S_PARENT);
+					const suffix = "." + String(S_PARENT);
+					return parentPath.endsWith(suffix) ? parentPath.slice(0, -suffix.length) : parentPath;
 				}
 
 				// for performance improvements, we assign this to a variable so we do not have to lookup the property value again
@@ -180,7 +215,7 @@ const ObservableSlim = (function() {
 				if (targetProp instanceof Object && targetProp !== null && target.hasOwnProperty(property)) {
 
 					// if we've found a proxy nested on the object, then we want to retrieve the original object behind that proxy
-					if (targetProp.__isProxy === true) targetProp = targetProp.__getTarget;
+					if (proxyToRecord.has(targetProp)) targetProp = proxyToRecord.get(targetProp).target;
 
 					// Check whether this nested object already has proxies with an O(1) lookup. If records 
 					// exist (ttp), try to reuse the proxy that belongs to this observable instead of creating 
@@ -261,7 +296,7 @@ const ObservableSlim = (function() {
 				// if the value we're assigning is an object, then we want to ensure
 				// that we're assigning the original object, not the proxy, in order to avoid mixing
 				// the actual targets and proxies -- creates issues with path logging if we don't do this
-				if (value && value.__isProxy) value = value.__getTarget;
+				if (value && proxyToRecord.has(value)) value = proxyToRecord.get(value).target;
 
 				// was this change an original change or was it a change that was re-triggered below
 				let originalChange = true;
@@ -276,11 +311,11 @@ const ObservableSlim = (function() {
 				// Only record this change if:
 				// 	1. the new value differs from the old one
 				//	2. OR if this proxy was not the original proxy to receive the change
-				// 	3. OR the modified target is an array and the modified property is "length" and our helper property __length indicates that the array length has changed
+				// 	3. OR the modified target is an array and the modified property is "length" and our helper indicates that the array length has changed
 				//
 				// Regarding #3 above: mutations of arrays via .push or .splice actually modify the .length before the set handler is invoked
-				// so in order to accurately report the correct previousValue for the .length, we have to use a helper property.
-				if (targetProp !== value || originalChange === false || (property === "length" && target instanceof Array && target.__length !== value)) {
+				// so in order to accurately report the correct previousValue for the .length, we track it in a WeakMap.
+				if (targetProp !== value || originalChange === false || (property === "length" && Array.isArray(target) && arrayLength.get(target) !== value)) {
 
 					let foundObservable = true;
 
@@ -303,10 +338,10 @@ const ObservableSlim = (function() {
 					});
 
 					// mutations of arrays via .push or .splice actually modify the .length before the set handler is invoked
-					// so in order to accurately report the correct previousValue for the .length, we have to use a helper property.
-					if (property === "length" && target instanceof Array && target.__length !== value) {
-						changes[changes.length-1].previousValue = target.__length;
-						target.__length = value;
+					// so in order to accurately report the correct previousValue for the .length, we track it in the WeakMap.
+					if (property === "length" && Array.isArray(target) && arrayLength.get(target) !== value) {
+						changes[changes.length-1].previousValue = arrayLength.get(target);
+						arrayLength.set(target, value);
 					}
 
 					// !!IMPORTANT!! if this proxy was the first proxy to receive the change, then we need to go check and see
@@ -450,6 +485,9 @@ const ObservableSlim = (function() {
 		// create the proxy that we'll use to observe any changes
 		const proxy = new Proxy(target, handler);
 
+		// Brand this proxy and keep a fast backreference for symbol helpers and static methods
+		proxyToRecord.set(proxy, { target, observable, path });
+
 		// we don't want to create a new observable if this function was invoked recursively
 		if (observable === null) {
 			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false,"path":path,"changesPaused":false,"proxyRefs":[]};
@@ -505,8 +543,8 @@ const ObservableSlim = (function() {
 
 			// test if the target is a Proxy, if it is then we need to retrieve the original object behind the Proxy.
 			// we do not allow creating proxies of proxies because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
-			if (target.__isProxy === true) {
-				target = target.__getTarget;
+			if (proxyToRecord.has(target)) {
+				target = proxyToRecord.get(target).target;
 				//if it is, then we should throw an error. we do not allow creating proxies of proxies
 				// because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
 				//throw new Error("ObservableSlim.create() cannot create a Proxy for a target object that is also a Proxy.");
@@ -520,12 +558,13 @@ const ObservableSlim = (function() {
 
 			// recursively loop over all nested objects on the proxy we've just created
 			// this will allow the top observable to observe any changes that occur on a nested object
-			(function iterate(proxy) {
-				const target = proxy.__getTarget;
-				const keys  = Object.keys(target);
+			(function iterate(pxy) {
+				const rec = proxyToRecord.get(pxy);
+				const tgt = rec ? rec.target : pxy;
+				const keys  = Object.keys(tgt);
 				for (let i = 0, l = keys.length; i < l; i++) {
 					const property = keys[i];
-					if (target[property] instanceof Object && target[property] !== null) iterate(proxy[property]);
+					if (tgt[property] instanceof Object && tgt[property] !== null) iterate(pxy[property]);
 				}
 			})(proxy);
 
@@ -673,6 +712,62 @@ const ObservableSlim = (function() {
 			if (foundMatch === true) {
 				observables.splice(c,1);
 			}
+		},
+
+
+		/**
+		 * Returns true if the argument is a proxy created by ObservableSlim.
+		 * @param {*} obj
+		 * @returns {boolean}
+		 */
+		isProxy(obj) {
+			return proxyToRecord.has(obj) === true;
+		},
+
+		/**
+		 * Returns the original target behind a proxy created by ObservableSlim.
+		 * @param {ProxyConstructor} obj
+		 * @returns {object}
+		 */
+		getTarget(obj) {
+			const rec = proxyToRecord.get(obj);
+			if (!rec) throw new Error("ObservableSlim.getTarget() expects a proxy that was created by ObservableSlim.");
+			return rec.target;
+		},
+
+		/**
+		 * Returns the path string for a proxy relative to its root observable.
+		 * @param {ProxyConstructor} proxy
+		 * @param {{jsonPointer?: boolean}} [opts]
+		 * @returns {string}
+		 */
+		getPath(proxy, { jsonPointer = false } = {}) {
+			const rec = proxyToRecord.get(proxy);
+			if (!rec) throw new Error("ObservableSlim.getPath() expects a proxy that was created by ObservableSlim.");
+			const pathStr = proxy[S_PATH];
+			if (jsonPointer) return "/" + pathStr.replace(/\./g, "/");
+			return pathStr;
+		},
+
+		/**
+		 * Returns the parent object of a proxy, climbing `i` levels.
+		 * @param {ProxyConstructor} proxy
+		 * @param {number} [i=1]
+		 * @returns {object}
+		 */
+		getParent(proxy, i = 1) {
+			if (!proxyToRecord.has(proxy)) throw new Error("ObservableSlim.getParent() expects a proxy that was created by ObservableSlim.");
+			return proxy[S_PARENT](i);
+		},
+
+		/**
+		 * Expose the internal Symbols for advanced users.
+		 */
+		symbols: {
+			IS_PROXY: S_IS_PROXY,
+			TARGET:   S_TARGET,
+			PARENT:   S_PARENT,
+			PATH:     S_PATH
 		}
 	};
 })();
