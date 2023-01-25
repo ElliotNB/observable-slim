@@ -55,16 +55,14 @@ function suite() {
 
 	}).timeout(2000);
 
-	it('3. Add a new string property (not supported with ES5 polyfill).', () => {
-		if (global.Proxy === global.NativeProxy) {
-			ObservableSlim.observe(p, function(changes) {
-				expect(changes[0].type).to.equal("add");
-				expect(changes[0].newValue).to.equal("world");
-			});
-			p.hello = "world";
-			expect(p.hello).to.equal("world");
-			expect(test.hello).to.equal("world");
-		}
+	it('3. Add a new string property.', () => {
+		ObservableSlim.observe(p, function(changes) {
+			expect(changes[0].type).to.equal("add");
+			expect(changes[0].newValue).to.equal("world");
+		});
+		p.hello = "world";
+		expect(p.hello).to.equal("world");
+		expect(test.hello).to.equal("world");
 	});
 
 	it('4. Modify string property value.', () => {
@@ -124,16 +122,14 @@ function suite() {
 		expect(test.hello.testing.foo[1].stuff).to.equal("WORLD");
 	});
 
-	it('7. Add a new object property (not supported with ES5 polyfill).', () => {
-		if (global.Proxy === global.NativeProxy) {
-			ObservableSlim.observe(p, function(changes) {
-				expect(changes[0].type).to.equal("add");
-				expect(changes[0].newValue).to.be.an.instanceof(Object);
-			});
-			p.testing = {};
-			expect(p.testing).to.be.an.instanceof(Object);
-			expect(test.testing).to.be.an.instanceof(Object);
-		}
+	it('7. Add a new object property.', () => {
+		ObservableSlim.observe(p, function(changes) {
+			expect(changes[0].type).to.equal("add");
+			expect(changes[0].newValue).to.be.an.instanceof(Object);
+		});
+		p.testing = {};
+		expect(p.testing).to.be.an.instanceof(Object);
+		expect(test.testing).to.be.an.instanceof(Object);
 	});
 
 	it('8. Set property equal to object.', () => {
@@ -147,18 +143,16 @@ function suite() {
 		expect(test.testing).to.be.an.instanceof(Object);
 	});
 
-	it('9. Add a new nested number property (not supported with ES5 polyfill).', () => {
-		if (global.Proxy === global.NativeProxy) {
-			ObservableSlim.observe(p, function(changes) {
-				expect(changes[0].type).to.equal("add");
-				expect(changes[0].newValue).to.equal(42);
-				expect(changes[0].currentPath).to.equal("testing.blah");
-			});
-			test.testing = {};
-			p.testing.blah = 42;
-			expect(p.testing.blah).to.be.equal(42);
-			expect(test.testing.blah).to.be.equal(42);
-		}
+	it('9. Add a new nested number property.', () => {
+		ObservableSlim.observe(p, function(changes) {
+			expect(changes[0].type).to.equal("add");
+			expect(changes[0].newValue).to.equal(42);
+			expect(changes[0].currentPath).to.equal("testing.blah");
+		});
+		test.testing = {};
+		p.testing.blah = 42;
+		expect(p.testing.blah).to.be.equal(42);
+		expect(test.testing.blah).to.be.equal(42);
 	});
 
 	it('10. Update nested number property.', () => {
@@ -186,16 +180,14 @@ function suite() {
 		expect(test.arr).to.be.an.instanceof(Array);
 	});
 
-	it('12. Add a new array property (not supported with ES5 polyfill).', () => {
-		if (global.Proxy === global.NativeProxy) {
-			ObservableSlim.observe(p, function(changes) {
-				expect(changes[0].type).to.equal("add");
-				expect(changes[0].newValue).to.be.an.instanceof(Array);
-			});
-			p.arr = [];
-			expect(p.arr).to.be.an.instanceof(Array);
-			expect(test.arr).to.be.an.instanceof(Array);
-		}
+	it('12. Add a new array property.', () => {
+		ObservableSlim.observe(p, function(changes) {
+			expect(changes[0].type).to.equal("add");
+			expect(changes[0].newValue).to.be.an.instanceof(Array);
+		});
+		p.arr = [];
+		expect(p.arr).to.be.an.instanceof(Array);
+		expect(test.arr).to.be.an.instanceof(Array);
 	});
 
 	it('13. Push item on to an array.', () => {
@@ -399,30 +391,26 @@ function suite() {
 		var test = [{},{"foo":"test"}];
 		var p = ObservableSlim.create(test, false, function(changes) {
 
-			// the change events differ slightly when using the ES5 Proxy polyfill, so we skip that part of the validation
-			// when the proxy is in use
-			if (global.Proxy === global.NativeProxy) {
-				if (change === 0) {
-					expect(changes[0].type).to.equal("update");
-					expect(changes[0].property).to.equal("0");
-					expect(changes[0].currentPath).to.equal("0");
-				} else if (change === 1) {
-					expect(changes[0].type).to.equal("delete");
-					expect(changes[0].property).to.equal("1");
-					expect(changes[0].currentPath).to.equal("1");
-				} else if (change === 2) {
-					expect(changes[0].type).to.equal("update");
-					expect(changes[0].property).to.equal("length");
-					expect(changes[0].newValue).to.equal(1);
-					expect(changes[0].previousValue).to.equal(2);
-					expect(changes[0].currentPath).to.equal("length");
-				} else if (change === 3) {
-					expect(changes[0].type).to.equal("update");
-					expect(changes[0].property).to.equal("foo");
-					expect(changes[0].newValue).to.equal("bar");
-					expect(changes[0].previousValue).to.equal("test");
-					expect(changes[0].currentPath).to.equal("0.foo");
-				}
+			if (change === 0) {
+				expect(changes[0].type).to.equal("update");
+				expect(changes[0].property).to.equal("0");
+				expect(changes[0].currentPath).to.equal("0");
+			} else if (change === 1) {
+				expect(changes[0].type).to.equal("delete");
+				expect(changes[0].property).to.equal("1");
+				expect(changes[0].currentPath).to.equal("1");
+			} else if (change === 2) {
+				expect(changes[0].type).to.equal("update");
+				expect(changes[0].property).to.equal("length");
+				expect(changes[0].newValue).to.equal(1);
+				expect(changes[0].previousValue).to.equal(2);
+				expect(changes[0].currentPath).to.equal("length");
+			} else if (change === 3) {
+				expect(changes[0].type).to.equal("update");
+				expect(changes[0].property).to.equal("foo");
+				expect(changes[0].newValue).to.equal("bar");
+				expect(changes[0].previousValue).to.equal("test");
+				expect(changes[0].currentPath).to.equal("0.foo");
 			}
 
 			change++;
@@ -438,19 +426,17 @@ function suite() {
 	});
 
 
-	it('21. Delete a property (not supported with ES5 polyfill).', () => {
-		if (global.Proxy === global.NativeProxy) {
-			ObservableSlim.create(test, function(changes) {
-				expect(changes[0].type).to.equal("delete");
-				expect(changes[0].property).to.equal("hello");
-			});
+	it('21. Delete a property.', () => {
+		ObservableSlim.create(test, function(changes) {
+			expect(changes[0].type).to.equal("delete");
+			expect(changes[0].property).to.equal("hello");
+		});
 
-			test.hello = "hello";
-			delete p.hello;
+		test.hello = "hello";
+		delete p.hello;
 
-			expect(test.hello).to.be.an('undefined');
-			expect(p.hello).to.be.an('undefined');
-		}
+		expect(test.hello).to.be.an('undefined');
+		expect(p.hello).to.be.an('undefined');
 	});
 
 	it('22. isProxy() check.', () => {
@@ -464,13 +450,11 @@ function suite() {
 	});
 
 	it('24. getParent() on nested object.', () => {
-		if (global.Proxy === global.NativeProxy) {
-			p.hello = {};
-			p.hello.blah = {"found":"me"};
-			test.hello.blah.foo = {};
-			var target = p.hello.blah.foo;
-			expect(ObservableSlim.getParent(target).found).to.equal("me");
-		}
+		p.hello = {};
+		p.hello.blah = {"found":"me"};
+		test.hello.blah.foo = {};
+		var target = p.hello.blah.foo;
+		expect(ObservableSlim.getParent(target).found).to.equal("me");
 	});
 
 	it('25. Multiple observables on same object.', () => {
@@ -771,14 +755,12 @@ function suite() {
 
 	});
 
-	it('41. Verify getPath returns correct path (not supported with ES5 polyfill).', () => {
-		if (global.Proxy === global.NativeProxy) {
-			var data = {"foo":"bar","arr":[{"test":{}}],"test":{"deeper":{}}};
-			var p = ObservableSlim.create(data, false, function(changes) {});
+	it('41. Verify getPath returns correct path.', () => {
+		var data = {"foo":"bar","arr":[{"test":{}}],"test":{"deeper":{}}};
+		var p = ObservableSlim.create(data, false, function(changes) {});
 
-			expect(ObservableSlim.getPath(p.test.deeper)).to.equal("test.deeper");
-			expect(ObservableSlim.getPath(p.arr[0].test)).to.equal("arr.0.test");
-		}
+		expect(ObservableSlim.getPath(p.test.deeper)).to.equal("test.deeper");
+		expect(ObservableSlim.getPath(p.arr[0].test)).to.equal("arr.0.test");
 
 	});
 
@@ -874,6 +856,199 @@ function suite() {
 		assert.strictEqual('a' in proxy1, false);
 		assert.strictEqual('a' in proxy2, false);
 		assert.strictEqual(Object.prototype.hasOwnProperty.call(target, 'a'), false);
+	});
+
+	it('45. getPath returns dotted and JSON Pointer, and updates after index shift.', () => {
+		var data = { foo: { bar: [ { baz: { qux: 1 } } ] } };
+		var p = ObservableSlim.create(data, false, function () {});
+
+		var leaf = p.foo.bar[0].baz; // proxy for {...}
+
+		// Basic dotted path and JSON Pointer
+		expect(ObservableSlim.getPath(leaf)).to.equal('foo.bar.0.baz');
+		expect(ObservableSlim.getPath(leaf, { jsonPointer: true })).to.equal('/foo/bar/0/baz');
+
+		// Move original element one slot to the right
+		p.foo.bar.unshift({ baz: { qux: 0 } });
+
+		// Path for the same proxy should reflect new array index
+		expect(ObservableSlim.getPath(leaf)).to.equal('foo.bar.1.baz');
+
+		// Error branch: non-proxy argument
+		expect(() => ObservableSlim.getPath({})).to.throw(/expects a proxy/i);
+	});
+
+	it('46. getParent returns correct ancestors (depths 1 & 2) and throws on non-proxy.', () => {
+		var data = { foo: { bar: [ { baz: { qux: 1 } } ] } };
+		var p = ObservableSlim.create(data, false, function () {});
+
+		var leaf = p.foo.bar[0].baz;
+
+		// Parent at depth 1 is the array element object
+		var parent1 = ObservableSlim.getParent(leaf);
+		expect(parent1).to.equal(p.foo.bar[0]);
+		expect(ObservableSlim.getPath(parent1)).to.equal('foo.bar.0');
+
+		// Parent at depth 2 is the array itself
+		var parent2 = ObservableSlim.getParent(leaf, 2);
+		expect(parent2).to.equal(p.foo.bar);
+
+		// Error branch: non-proxy argument
+		expect(() => ObservableSlim.getParent({}, 1)).to.throw(/expects a proxy/i);
+	});
+
+	it('47. Internal Symbols: TARGET returns original object, IS_PROXY returns true', () => {
+		// Only applicable with native Proxy behavior
+		const data = { x: 1 };
+		const proxy = ObservableSlim.create(data, false, function () {});
+
+		const { TARGET, IS_PROXY } = ObservableSlim.symbols;
+
+		expect(proxy[TARGET]).to.equal(data); // same reference as original target
+		expect(proxy[IS_PROXY]).to.equal(true);
+
+		// Sanity: Symbols are not enumerated via Object.keys
+		expect(Object.keys(proxy).includes(String(TARGET))).to.equal(false);
+		expect(Object.keys(proxy).includes(String(IS_PROXY))).to.equal(false);
+	});
+
+	it('48. observe() on a nested proxy is a no-op (no matching parentProxy)', () => {
+		// Build a nested structure
+		const data = { a: { b: { c: 1 } } };
+		const root = ObservableSlim.create(data, false, function () {});
+
+		// Get a nested proxy (not a parentProxy in observables[])
+		const nested = root.a.b;
+
+		// Attempt to register an observer on the nested proxy – this should do nothing
+		let called = false;
+		ObservableSlim.observe(nested, () => { called = true; });
+
+		// Mutate the nested object; if observe() had attached, this would flip `called`
+		nested.c = 2;
+
+		expect(called).to.equal(false, 'observe() on nested proxy should not attach an observer');
+		expect(root.a.b.c).to.equal(2);
+		expect(data.a.b.c).to.equal(2);
+	});
+
+	it('49. Pause/resume (+ changes) throw for a removed (previously valid) proxy', () => {
+		const data = { x: 1 };
+		const proxy = ObservableSlim.create(data, false, function () {});
+
+		// Remove the observable so it no longer exists in `observables[]`
+		ObservableSlim.remove(proxy);
+
+		// Now each should hit the "foundMatch === false" branch and throw
+		expect(() => ObservableSlim.pause(proxy)).to.throw(/could not pause observable/i);
+		expect(() => ObservableSlim.resume(proxy)).to.throw(/could not resume observable/i);
+		expect(() => ObservableSlim.pauseChanges(proxy)).to.throw(/could not pause changes/i);
+		expect(() => ObservableSlim.resumeChanges(proxy)).to.throw(/could not resume changes/i);
+	});
+
+
+	it('50. Cleanup removes last proxy record for overwritten dynamic object and skips unproxied descendants', function (done) {
+		this.timeout(13000);
+
+		const data = {};
+		let calls = 0;
+		const p = ObservableSlim.create(data, false, () => { calls++; });
+
+		// Assign a nested object at runtime; only the top-level (parent) gets proxied immediately.
+		const oldParent = { child: { grand: { leaf: 1 } } };
+		p.parent = oldParent;            // calls += 1
+		p.parent = { replaced: true };   // calls += 1 and schedules 10s cleanup for oldParent
+
+		// After cleanup runs, mutating the old unproxied descendants should NOT notify.
+		setTimeout(() => {
+			const before = calls;
+			oldParent.child.grand.leaf = 2; // raw object (no proxy), should not notify p
+
+			// Tiny delay to catch any accidental notifications
+			setTimeout(() => {
+				expect(calls).to.equal(before);
+				done();
+			}, 20);
+		}, 10200);
+	});
+
+	it('51. Cleanup preserves other observables proxies (does not delete map when entries remain)', function (done) {
+		this.timeout(13000);
+
+		// Two observables over the same target to ensure the proxy list has >1 entry.
+		const root = { parent: { child: 1 } };
+		let calls1 = 0, calls2 = 0;
+
+		const p1 = ObservableSlim.create(root, false, () => { calls1++; });
+		const p2 = ObservableSlim.create(root, false, () => { calls2++; });
+
+		// Keep a handle to the *old* parent proxy from p2.
+		const oldParentProxyForP2 = p2.parent;
+
+		// Overwrite via p1; this schedules cleanup that will remove p1's entry for the old parent,
+		// but p2's entry should remain (so the map is not deleted).
+		p1.parent = { newChild: 2 }; // calls1 += 1, and via dupProxy propagation calls2 += 1
+
+		setTimeout(() => {
+			const before2 = calls2;
+
+			// Mutate the old parent *through p2's proxy*; p2 should still be notified,
+			// proving the entry for that object wasn't deleted globally.
+			oldParentProxyForP2.child = 42;
+
+			expect(calls2).to.equal(before2 + 1);
+			// p1 should not be notified by this last mutation on the orphaned proxy
+			expect(calls1).to.equal(1);
+
+			done();
+		}, 10200);
+	});
+
+	it('52. remove() detaches one observable but preserves target entries when others remain', () => {
+		// Have nested structure so multiple proxyRefs exist
+		const data = { tree: { leaf: 1 }, list: [{ v: 1 }, { v: 2 }] };
+
+		let calls1 = 0;
+		let calls2 = 0;
+
+		const p1 = ObservableSlim.create(data, false, () => { calls1++; });
+		const p2 = ObservableSlim.create(data, false, () => { calls2++; });
+
+		// Sanity check: both observables get notified on a change before removal
+		p2.tree.leaf = 2;
+		expect(calls1).to.equal(1);
+		expect(calls2).to.equal(1);
+
+		// Remove only the first observable. Internally this will splice p1's entries
+		// from targetToProxies arrays but must NOT delete them entirely because p2 remains.
+		ObservableSlim.remove(p1);
+
+		// Further mutations should notify p2 only, proving arr.length !== 0 branch was taken.
+		p2.tree.leaf = 3;
+		p2.list[1].v = 99;
+
+		expect(calls1).to.equal(1); // no new calls to the removed observable
+		expect(calls2).to.equal(3); // two additional notifications for p2
+	});
+
+	it('53. _getProperty: traverses into undefined mid-path (key with dot) and triggers falsy branch', () => {
+		const data = {};
+		const p = ObservableSlim.create(data, false, function () {});
+
+		// Create a property whose name contains a dot.
+		p['a.b'] = { child: { leaf: 1 } };
+
+		const leaf = p['a.b'].child; // proxied object
+
+		// Because _getProperty splits on '.', it treats 'a.b' as ['a','b'].
+		// After resolving 'a' (undefined), the next step runs with prev = undefined,
+		// exercising the `prev ? prev[curr] : undefined` falsy branch and returning undefined.
+		const parent = ObservableSlim.getParent(leaf);
+		expect(parent).to.equal(undefined);
+
+		// Sanity: normal non-dotted paths still work
+		p.normal = { kid: {} };
+		expect(ObservableSlim.getParent(p.normal.kid)).to.equal(p.normal);
 	});
 
 };

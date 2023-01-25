@@ -132,8 +132,10 @@ const ObservableSlim = (function() {
 				lastTarget = path[i].target;
 			}
 
-			// add the current property
-			fullPath = fullPath + "." + property;
+			// Add the current property
+			// Use a dot-free marker for the S_PARENT symbol so split(".") is safe.
+			const seg = (typeof property === "symbol" && property === S_PARENT) ? "__S_PARENT__" : String(property);
+			fullPath = fullPath + "." + seg;
 
 			// remove the beginning two dots -- ..foo.bar becomes foo.bar (the first item in the nested chain doesn't have a property name)
 			fullPath = fullPath.substring(2);
@@ -199,7 +201,7 @@ const ObservableSlim = (function() {
 				} else if (property === S_PATH) {
 					// strip off the trailing ".<symbol>" that _getPath appends when asked for S_PARENT
 					const parentPath = _getPath(target, S_PARENT);
-					const suffix = "." + String(S_PARENT);
+					const suffix = ".__S_PARENT__";
 					return parentPath.endsWith(suffix) ? parentPath.slice(0, -suffix.length) : parentPath;
 				}
 
