@@ -1,7 +1,7 @@
-var chai = require('chai');
-var expect = chai.expect;
-var assert = chai.assert;
-var ObservableSlim = require("../observable-slim.js");
+const chai = require('chai');
+const expect = chai.expect;
+const assert = chai.assert;
+const ObservableSlim = require("../observable-slim.js");
 
 describe('Native Proxy', function() {
 	this.timeout(12000);
@@ -10,7 +10,7 @@ describe('Native Proxy', function() {
 
 function suite() {
 
-	var test, p;
+	let test, p;
 
 	beforeEach(() => {
 		test = {};
@@ -19,37 +19,37 @@ function suite() {
 
 	it('1. Read 20,000 objects in under 1 second.', () => {
 
-		var largeArray = [];
+		const largeArray = [];
 
-		for (var i = 0; i < 20000; i++) {
+		for (let i = 0; i < 20000; i++) {
 			largeArray.push({
 				"hello":"world"
 				,"foo":"bar"
 			});
 		}
 
-		var largeProxyArr = ObservableSlim.create(largeArray, false, function(changes) {});
+		const largeProxyArr = ObservableSlim.create(largeArray, false, function(changes) {});
 
-		for (var i = 0; i < largeProxyArr.length; i++) {
-			var test = largeProxyArr[i].foo;
+		for (let i = 0; i < largeProxyArr.length; i++) {
+			const test = largeProxyArr[i].foo;
 		}
 
 	}).timeout(1000);
 
 	it('2. Write 20,000 objects in under 2 seconds.', () => {
 
-		var largeArray = [];
+		const largeArray = [];
 
-		for (var i = 0; i < 20000; i++) {
+		for (let i = 0; i < 20000; i++) {
 			largeArray.push({
 				"hello":"world"
 				,"foo":"bar"
 			});
 		}
 
-		var largeProxyArr = ObservableSlim.create(largeArray, false, function(changes) {});
+		const largeProxyArr = ObservableSlim.create(largeArray, false, function(changes) {});
 
-		for (var i = 0; i < largeProxyArr.length; i++) {
+		for (let i = 0; i < largeProxyArr.length; i++) {
 			largeProxyArr[i].foo = "BAR";
 		}
 
@@ -66,8 +66,8 @@ function suite() {
 	});
 
 	it('4. Modify string property value.', () => {
-		var test = {"hello":""};
-		var p = ObservableSlim.create(test, false, function(changes) {
+		const test = {"hello":""};
+		const p = ObservableSlim.create(test, false, function(changes) {
 			expect(changes[0].type).to.equal("update");
 			expect(changes[0].newValue).to.equal("WORLD");
 		});
@@ -78,8 +78,8 @@ function suite() {
 	});
 
 	it('5.1. Modify string property value with DOM delay included as boolean.', (done) => {
-		var test = {"hello":""};
-		var p = ObservableSlim.create(test, true, function(changes) {
+		const test = {"hello":""};
+		const p = ObservableSlim.create(test, true, function(changes) {
 			expect(changes[0].type).to.equal("update");
 			expect(changes[0].newValue).to.equal("WORLD");
 		});
@@ -93,8 +93,8 @@ function suite() {
 	});
 
 	it('5.2. Modify string property value with DOM delay included as number.', (done) => {
-		var test = {"hello":""};
-		var p = ObservableSlim.create(test, 25, function(changes) {
+		const test = {"hello":""};
+		const p = ObservableSlim.create(test, 25, function(changes) {
 			expect(changes[0].type).to.equal("update");
 			expect(changes[0].newValue).to.equal("WORLD");
 		});
@@ -108,8 +108,8 @@ function suite() {
 	});
 
 	it('6. Modify a deeply nested array item.', () => {
-		var test = {"hello":{"testing":{"foo":["testing",{"stuff":"hey"},"here"]}}};
-		var p = ObservableSlim.create(test, false, function(changes) {
+		const test = {"hello":{"testing":{"foo":["testing",{"stuff":"hey"},"here"]}}};
+		const p = ObservableSlim.create(test, false, function(changes) {
 
 			expect(changes[0].type).to.equal("update");
 			expect(changes[0].newValue).to.equal("WORLD");
@@ -133,8 +133,8 @@ function suite() {
 	});
 
 	it('8. Set property equal to object.', () => {
-		var test = {"testing":false};
-		var p = ObservableSlim.create(test, false, function(changes) {
+		const test = {"testing":false};
+		const p = ObservableSlim.create(test, false, function(changes) {
 			expect(changes[0].type).to.equal("update");
 			expect(changes[0].newValue).to.be.an.instanceof(Object);
 		});
@@ -156,10 +156,10 @@ function suite() {
 	});
 
 	it('10. Update nested number property.', () => {
-		var test = {};
+		const test = {};
 		test.testing = {};
 		test.testing.blah = 0;
-		var p = ObservableSlim.create(test, false, function(changes) {
+		const p = ObservableSlim.create(test, false, function(changes) {
 			expect(changes[0].type).to.equal("update");
 			expect(changes[0].newValue).to.equal(42);
 			expect(changes[0].currentPath).to.equal("testing.blah");
@@ -169,9 +169,9 @@ function suite() {
 		expect(test.testing.blah).to.be.equal(42);
 	});
 
-	it('11. Set property as a new array.', () => {
-		var test = {"arr":false};
-		var p = ObservableSlim.create(test, false, function(changes) {
+	it('11. Set property equal to a new array.', () => {
+		const test = {"arr":false};
+		const p = ObservableSlim.create(test, false, function(changes) {
 			expect(changes[0].type).to.equal("update");
 			expect(changes[0].newValue).to.be.an.instanceof(Array);
 		});
@@ -191,9 +191,9 @@ function suite() {
 	});
 
 	it('13. Push item on to an array.', () => {
-		var test = {"arr":[]};
-		var change = 0;
-		var p = ObservableSlim.create(test, false, function(changes) {
+		const test = {"arr":[]};
+		let change = 0;
+		const p = ObservableSlim.create(test, false, function(changes) {
 			if (change === 0) {
 				expect(changes[0].type).to.equal("add");
 				expect(changes[0].newValue).to.equal("hello world");
@@ -215,9 +215,9 @@ function suite() {
 	});
 
 	it('14. Unshift item to an array.', () => {
-		var change = 0;
-		var test = {"arr":["foo bar"]};
-		var p = ObservableSlim.create(test, false, function(changes) {
+		let change = 0;
+		const test = {"arr":["foo bar"]};
+		const p = ObservableSlim.create(test, false, function(changes) {
 			if (change === 0) {
 				expect(changes[0].type).to.equal("add");
 				expect(changes[0].newValue).to.equal("foo bar");
@@ -233,7 +233,7 @@ function suite() {
 			change++;
 		});
 
-		var length = p.arr.unshift("hello world");
+		const length = p.arr.unshift("hello world");
 		expect(p.arr[0]).to.equal("hello world");
 		expect(test.arr[0]).to.equal("hello world");
 		expect(p.arr.length).to.equal(2);
@@ -242,9 +242,9 @@ function suite() {
 	});
 
 	it('15. Pop an item from an array.', () => {
-		var change = 0;
-		var test = {"arr":["hello world","foo bar"]};
-		var p = ObservableSlim.create(test, false, function(changes) {
+		let change = 0;
+		const test = {"arr":["hello world","foo bar"]};
+		const p = ObservableSlim.create(test, false, function(changes) {
 			if (change === 0) {
 				expect(changes[0].type).to.equal("delete");
 				expect(changes[0].property).to.equal("1");
@@ -263,10 +263,10 @@ function suite() {
 			change++;
 		});
 
-		var lastItem = p.arr[1];
-		var popItem = p.arr.pop();
+		const lastItem = p.arr[1];
+		const popItem = p.arr.pop();
 
-		var popLastSame = (lastItem === popItem);
+		const popLastSame = (lastItem === popItem);
 
 		expect(p.arr[0]).to.equal("hello world");
 		expect(test.arr[0]).to.equal("hello world");
@@ -276,11 +276,11 @@ function suite() {
 	});
 
 	it('16. Splice first item from an array.', () => {
-		var change = 0;
-		var test = {};
+		let change = 0;
+		const test = {};
 		test.arr = [];
 		test.arr.push("hello world");
-		var p = ObservableSlim.create(test, false, function(changes) {
+		const p = ObservableSlim.create(test, false, function(changes) {
 			if (change === 0) {
 				firstChange = false;
 				expect(changes[0].type).to.equal("delete");
@@ -297,9 +297,9 @@ function suite() {
 	});
 
 	it('17. Insert item into an array using splice.', () => {
-		var change = 0;
-		var test = {"arr":["hello world","foo bar","sunday","sunday"]};
-		var p = ObservableSlim.create(test, false, function(changes) {
+		let change = 0;
+		const test = {"arr":["hello world","foo bar","sunday","sunday"]};
+		const p = ObservableSlim.create(test, false, function(changes) {
 			if (change === 0) {
 				expect(changes[0].type).to.equal("add");
 				expect(changes[0].property).to.equal("4");
@@ -322,7 +322,7 @@ function suite() {
 			change++;
 		});
 
-		var val = p.arr.splice(1,0, "inserting");
+		const val = p.arr.splice(1,0, "inserting");
 
 		expect(test.arr.length).to.equal(5);
 		expect(p.arr.length).to.equal(5);
@@ -332,11 +332,11 @@ function suite() {
 	});
 
 	it('18. Insert new item and remove two items from an array using splice.', () => {
-		var change = 0;
-		var test = {"arr":["hello world","foo bar","sunday","tuesday"]};
-		var p = ObservableSlim.create(test, false, function(changes) {});
+		let change = 0;
+		const test = {"arr":["hello world","foo bar","sunday","tuesday"]};
+		const p = ObservableSlim.create(test, false, function(changes) {});
 
-		var val = p.arr.splice(1,2, "inserting");
+		const val = p.arr.splice(1,2, "inserting");
 
 		expect(test.arr.length).to.equal(3);
 		expect(p.arr.length).to.equal(3);
@@ -351,9 +351,9 @@ function suite() {
 	});
 
 	it('19. Shift the first item off an array.', () => {
-		var change = 0;
-		var test = {"arr":["foo bar","hello world"]};
-		var p = ObservableSlim.create(test, false, function(changes) {
+		let change = 0;
+		const test = {"arr":["foo bar","hello world"]};
+		const p = ObservableSlim.create(test, false, function(changes) {
 			if (change === 0) {
 				expect(changes[0].type).to.equal("update");
 				expect(changes[0].property).to.equal("0");
@@ -377,7 +377,7 @@ function suite() {
 			change++;
 		});
 
-		var removedItem = p.arr.shift();
+		const removedItem = p.arr.shift();
 		expect(p.arr[0]).to.equal("hello world");
 		expect(test.arr[0]).to.equal("hello world");
 		expect(p.arr.length).to.equal(1);
@@ -387,9 +387,9 @@ function suite() {
 
 	it('20. currentPath is updated correctly when the position of an Object in an Array changes.', () => {
 
-		var change = 0;
-		var test = [{},{"foo":"test"}];
-		var p = ObservableSlim.create(test, false, function(changes) {
+		let change = 0;
+		const test = [{},{"foo":"test"}];
+		const p = ObservableSlim.create(test, false, function(changes) {
 
 			if (change === 0) {
 				expect(changes[0].type).to.equal("update");
@@ -444,7 +444,7 @@ function suite() {
 	});
 
 	it('23. getTarget() check.', () => {
-		var isSameObject = false;
+		let isSameObject = false;
 		if (ObservableSlim.getTarget(p) === test) isSameObject = true;
 		expect(isSameObject).to.be.equal(true);
 	});
@@ -453,20 +453,20 @@ function suite() {
 		p.hello = {};
 		p.hello.blah = {"found":"me"};
 		test.hello.blah.foo = {};
-		var target = p.hello.blah.foo;
+		const target = p.hello.blah.foo;
 		expect(ObservableSlim.getParent(target).found).to.equal("me");
 	});
 
 	it('25. Multiple observables on same object.', () => {
-		var test = {"dummy":"blah"};
-		var firstProxy = false;
-		var secondProxy = false;
-		var pp = ObservableSlim.create(test, false, function(changes) {
+		const test = {"dummy":"blah"};
+		let firstProxy = false;
+		let secondProxy = false;
+		const pp = ObservableSlim.create(test, false, function(changes) {
 			if (changes[0].currentPath == "dummy" && changes[0].newValue == "foo") {
 				firstProxy = true;
 			}
 		});
-		var ppp = ObservableSlim.create(pp, false, function(changes) {
+		const ppp = ObservableSlim.create(pp, false, function(changes) {
 			if (changes[0].currentPath == "dummy" && changes[0].newValue == "foo") {
 				secondProxy = true;
 			}
@@ -479,15 +479,15 @@ function suite() {
 	});
 
 	it('26. Multiple observables on same object with nested objects.', () => {
-		var firstProxy = false;
-		var secondProxy = false;
-		var testing = {"foo":{"bar":"bar"}};
-		var pp = ObservableSlim.create(testing, false, function(changes) {
+		let firstProxy = false;
+		let secondProxy = false;
+		const testing = {"foo":{"bar":"bar"}};
+		const pp = ObservableSlim.create(testing, false, function(changes) {
 			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
 				firstProxy = true;
 			}
 		});
-		var ppp = ObservableSlim.create(testing, false, function(changes) {
+		const ppp = ObservableSlim.create(testing, false, function(changes) {
 			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
 				secondProxy = true;
 			}
@@ -500,15 +500,15 @@ function suite() {
 	});
 
 	it('27. Multiple observables on same object with nested objects by passing in a Proxy to `create`.', () => {
-		var firstProxy = false;
-		var secondProxy = false;
-		var testing = {"foo":{"bar":"bar"}};
-		var pp = ObservableSlim.create(testing, false, function(changes) {
+		let firstProxy = false;
+		let secondProxy = false;
+		const testing = {"foo":{"bar":"bar"}};
+		const pp = ObservableSlim.create(testing, false, function(changes) {
 			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
 				firstProxy = true;
 			}
 		});
-		var ppp = ObservableSlim.create(pp, false, function(changes) {
+		const ppp = ObservableSlim.create(pp, false, function(changes) {
 			if (changes[0].currentPath == "foo.bar" && changes[0].newValue == "foo") {
 				secondProxy = true;
 			}
@@ -522,20 +522,20 @@ function suite() {
 
 	it('28. Multiple observables on same object and a Proxy nested within another object.', () => {
 
-		var firstObservableTriggered = false;
-		var secondObservableTriggered = false;
-		var thirdObservableTriggered = false;
+		let firstObservableTriggered = false;
+		let secondObservableTriggered = false;
+		let thirdObservableTriggered = false;
 
-		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":"tree"};
-		var p = ObservableSlim.create(data, false, function(changes) { firstObservableTriggered = true; });
-		var pp = ObservableSlim.create(p.testing, false, function(changes) { secondObservableTriggered = true; });
+		const data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":"tree"};
+		const p = ObservableSlim.create(data, false, function(changes) { firstObservableTriggered = true; });
+		const pp = ObservableSlim.create(p.testing, false, function(changes) { secondObservableTriggered = true; });
 
-		var datatwo = {
+		const datatwo = {
 			"hey":"world"
 			,"other_data":p.testing
 		};
 
-		var ppp = ObservableSlim.create(datatwo, false, function(changes) { thirdObservableTriggered = true; });
+		const ppp = ObservableSlim.create(datatwo, false, function(changes) { thirdObservableTriggered = true; });
 
 		p.testing.test.testb = "YOOO";
 
@@ -547,21 +547,21 @@ function suite() {
 
 	it('29. Multiple observables on same object and a Proxy nested within another object set after initialization.', () => {
 
-		var firstObservableTriggered = 0;
-		var secondObservableTriggered = 0;
-		var thirdObservableTriggered = 0;
+		let firstObservableTriggered = 0;
+		let secondObservableTriggered = 0;
+		let thirdObservableTriggered = 0;
 
-		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
-		var p = ObservableSlim.create(data, false, function(changes) { firstObservableTriggered++; });
-		var pp = ObservableSlim.create(p.testing, false, function(changes) { secondObservableTriggered++; });
+		const data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		const p = ObservableSlim.create(data, false, function(changes) { firstObservableTriggered++; });
+		const pp = ObservableSlim.create(p.testing, false, function(changes) { secondObservableTriggered++; });
 
-		var datatwo = {
+		const datatwo = {
 			"hey":"world"
 			,"other_data":p.testing
 			,"new_test":{}
 		};
 
-		var ppp = ObservableSlim.create(datatwo, false, function(changes) { thirdObservableTriggered++; });
+		const ppp = ObservableSlim.create(datatwo, false, function(changes) { thirdObservableTriggered++; });
 
 		ppp.new_test = p.blah;
 
@@ -578,9 +578,9 @@ function suite() {
 
 	it('30. Create an observable and then remove it.', () => {
 
-		var observed = false;
-		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
-		var p = ObservableSlim.create(data, false, function(changes) {
+		let observed = false;
+		const data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		const p = ObservableSlim.create(data, false, function(changes) {
 			observed = true;
 		});
 
@@ -598,9 +598,9 @@ function suite() {
 
 	it('31. Pause and resume observables.', () => {
 
-		var changeCount = 0;
-		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
-		var p = ObservableSlim.create(data, false, function(changes) { changeCount++; });
+		let changeCount = 0;
+		const data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		const p = ObservableSlim.create(data, false, function(changes) { changeCount++; });
 
 		// try resuming an object that's not a proxy, it should throw an error
 		assert(function() { ObservableSlim.pause({}); }, Error, "ObseravableSlim could not pause observable -- matching proxy not found.");
@@ -623,9 +623,9 @@ function suite() {
 
 	it('32. Pause and resume changes on observables', () => {
 
-		var changeCount = 0;
-		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
-		var p = ObservableSlim.create(data, false, function(changes) { changeCount++; });
+		let changeCount = 0;
+		const data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		const p = ObservableSlim.create(data, false, function(changes) { changeCount++; });
 
 		// try resuming an object that's not a proxy, it should throw an error
 		assert(function() { ObservableSlim.pauseChanges({}); }, Error, "ObseravableSlim could not pause changes on observable -- matching proxy not found.");
@@ -649,12 +649,12 @@ function suite() {
 
 	it('33. Verify that a mutation on an object observed by two handlers returns the correct new value in both handlers.', () => {
 
-		var data = {"foo":"bar"};
-		var p = ObservableSlim.create(data, false, function(changes) {
+		const data = {"foo":"bar"};
+		const p = ObservableSlim.create(data, false, function(changes) {
 			expect(p.foo).to.equal("test");
 		});
 
-		var pp = ObservableSlim.create(p, false, function(changes) {
+		const pp = ObservableSlim.create(p, false, function(changes) {
 			expect(p.foo).to.equal("test");
 		});
 
@@ -669,13 +669,13 @@ function suite() {
 	// changes to an overwritten object are still monitored as long as there's another reference to the object.
  	it('34. Clean-up observers of overwritten (orphaned) objects.', (done) => {
 
-		var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
-		var dupe = {"duplicate":"is duplicated"};
+		const data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":{"tree":"world"}};
+		const dupe = {"duplicate":"is duplicated"};
 		data.blah.dupe = dupe;
 		data.dupe = dupe;
-		var changeCnt = 0;
+		let changeCnt = 0;
 
-		var p = ObservableSlim.create(data, false, function(changes) {
+		const p = ObservableSlim.create(data, false, function(changes) {
 			changeCnt++;
 			if (changeCnt === 1) {
 				expect(p.testing.test).to.be.an("undefined");
@@ -699,54 +699,54 @@ function suite() {
 	});
 
 	it('35. JSON.stringify does not fail on proxied date.', () => {
-		var test = {d: new Date()};
-		var p = ObservableSlim.create(test, false, function () {});
+		const test = {d: new Date()};
+		const p = ObservableSlim.create(test, false, function () {});
 
 		JSON.stringify(p);
 	});
 
 	it('36. valueOf does not fail on proxied date.', () => {
-		var test = {d: new Date()};
-		var p = ObservableSlim.create(test, false, function () {});
+		const test = {d: new Date()};
+		const p = ObservableSlim.create(test, false, function () {});
 
 		p.d.valueOf();
 	});
 
 	it('37. Delete property after calling ObservableSlim.remove does not fail.', () => {
-		var test = {foo: 'foo'};
-		var p = ObservableSlim.create(test, false, function () {});
+		const test = {foo: 'foo'};
+		const p = ObservableSlim.create(test, false, function () {});
 
 		ObservableSlim.remove(p);
 		delete p.foo;
 	});
 
 	it('38. Proxied Date.toString outputs the pristine Date.toString.', () => {
-		var test = {d: new Date()};
-		var p = ObservableSlim.create(test, false, function () {});
+		const test = {d: new Date()};
+		const p = ObservableSlim.create(test, false, function () {});
 
 		expect(p.d.toString()).to.equal(test.d.toString());
 	});
 
 	it('39. Proxied Date.getTime outputs the pristine Date.getTime.', () => {
-		var test = {d: new Date()};
-		var p = ObservableSlim.create(test, false, function () {});
+		const test = {d: new Date()};
+		const p = ObservableSlim.create(test, false, function () {});
 
 		expect(p.d.getTime()).to.equal(test.d.getTime());
 	});
 
 	it('40. __targetPosition helper is non-enumerable.', () => {
 
-		var found = false;
+		let found = false;
 
-		var test = {d: new Date()};
-		var p = ObservableSlim.create(test, false, function () {});
+		const test = {d: new Date()};
+		const p = ObservableSlim.create(test, false, function () {});
 
-		for (var prop in test) {
+		for (const prop in test) {
 			if (prop === "__targetPosition") found = true;
 		}
 
-		var keys = Object.keys(test);
-		var i = keys.length;
+		const keys = Object.keys(test);
+		let i = keys.length;
 		while (i--) {
 			if (keys[i] == "__targetPosition") found = true;
 		}
@@ -756,8 +756,8 @@ function suite() {
 	});
 
 	it('41. Verify getPath returns correct path.', () => {
-		var data = {"foo":"bar","arr":[{"test":{}}],"test":{"deeper":{}}};
-		var p = ObservableSlim.create(data, false, function(changes) {});
+		const data = {"foo":"bar","arr":[{"test":{}}],"test":{"deeper":{}}};
+		const p = ObservableSlim.create(data, false, function(changes) {});
 
 		expect(ObservableSlim.getPath(p.test.deeper)).to.equal("test.deeper");
 		expect(ObservableSlim.getPath(p.arr[0].test)).to.equal("arr.0.test");
@@ -765,32 +765,32 @@ function suite() {
 	});
 
 	it('42. Array does not enumerate __length.', () => {
-		var largeArray = [];
+		const largeArray = [];
 
-		for (var i = 0; i < 5; i++) {
+		for (let i = 0; i < 5; i++) {
 			largeArray.push({
 				"hello":"world"
 				,"foo":"bar"
 			});
 		}
 
-		var proxyArr = ObservableSlim.create(largeArray, false, function(changes) {});
+		const proxyArr = ObservableSlim.create(largeArray, false, function(changes) {});
 
-		var keys = Array.from(proxyArr.keys());
+		const keys = Array.from(proxyArr.keys());
 		expect(keys.every(item => !Number.isNaN(item))).to.be.true;
 	});
 
 	it('43. Refresh length tracking when creating a second observable on the same array.', () => {
 		// Start with an array and create the first observable
-		var arr = [1, 2, 3];
-		var p1 = ObservableSlim.create(arr, false, function () {});
+		const arr = [1, 2, 3];
+		const p1 = ObservableSlim.create(arr, false, function () {});
 
 		// Mutate the array directly (not via proxy) so internal length tracking must be refreshed on next create
 		arr.push(4, 5); // arr.length is now 5
 
 		// Create a second observable for the same array; internal length baseline should initialize to 5
-		var sawLengthUpdate = false;
-		var p2 = ObservableSlim.create(arr, false, function (changes) {
+		let sawLengthUpdate = false;
+		const p2 = ObservableSlim.create(arr, false, function (changes) {
 			if (changes[0].property === 'length') {
 				expect(changes[0].previousValue).to.equal(5);
 				expect(changes[0].newValue).to.equal(6);
@@ -859,10 +859,10 @@ function suite() {
 	});
 
 	it('45. getPath returns dotted and JSON Pointer, and updates after index shift.', () => {
-		var data = { foo: { bar: [ { baz: { qux: 1 } } ] } };
-		var p = ObservableSlim.create(data, false, function () {});
+		const data = { foo: { bar: [ { baz: { qux: 1 } } ] } };
+		const p = ObservableSlim.create(data, false, function () {});
 
-		var leaf = p.foo.bar[0].baz; // proxy for {...}
+		const leaf = p.foo.bar[0].baz; // proxy for {...}
 
 		// Basic dotted path and JSON Pointer
 		expect(ObservableSlim.getPath(leaf)).to.equal('foo.bar.0.baz');
@@ -879,18 +879,18 @@ function suite() {
 	});
 
 	it('46. getParent returns correct ancestors (depths 1 & 2) and throws on non-proxy.', () => {
-		var data = { foo: { bar: [ { baz: { qux: 1 } } ] } };
-		var p = ObservableSlim.create(data, false, function () {});
+		const data = { foo: { bar: [ { baz: { qux: 1 } } ] } };
+		const p = ObservableSlim.create(data, false, function () {});
 
-		var leaf = p.foo.bar[0].baz;
+		const leaf = p.foo.bar[0].baz;
 
 		// Parent at depth 1 is the array element object
-		var parent1 = ObservableSlim.getParent(leaf);
+		const parent1 = ObservableSlim.getParent(leaf);
 		expect(parent1).to.equal(p.foo.bar[0]);
 		expect(ObservableSlim.getPath(parent1)).to.equal('foo.bar.0');
 
 		// Parent at depth 2 is the array itself
-		var parent2 = ObservableSlim.getParent(leaf, 2);
+		const parent2 = ObservableSlim.getParent(leaf, 2);
 		expect(parent2).to.equal(p.foo.bar);
 
 		// Error branch: non-proxy argument
