@@ -19,7 +19,7 @@
  *	predictable while getting reliable deep change tracking.
  */
 const ObservableSlim = (function() {
-	const paths = [];
+	
 	// An array that stores all of the observables created through the public create() method below.
 	const observables = [];
 	
@@ -93,7 +93,6 @@ const ObservableSlim = (function() {
 
 		// record the nested path taken to access this object -- if there was no path then we provide the first empty entry
 		const path = originalPath || [{"target":target,"property":""}];
-		paths.push(path);
 
 		// in order to accurately report the "previous value" of the "length" property on an Array
 		// we track lengths in a WeakMap. This is necessary because because intercepting a length change 
