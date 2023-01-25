@@ -4,256 +4,403 @@
 
 https://github.com/elliotnb/observable-slim
 
-Version 0.1.6
+*A small, dependency‑free deep observer for plain objects and arrays, powered by ES2015 Proxies.*
 
-Licensed under the MIT license:
+> Watches your data (including all nested children) and emits structured change records (`add` / `update` / `delete`) with the property name, a dot‑path and RFC6901 JSON Pointer, previous/new values, and the originating proxy.
 
-http://www.opensource.org/licenses/MIT
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [API](#api)
+  - [`ObservableSlim.create(target, domDelay, observer?)`](#observableslimcreatetarget-domdelay-observer)
+  - [`ObservableSlim.observe(proxy, observer)`](#observableslimobserveproxy-observer)
+  - [`ObservableSlim.pause(proxy)`](#observableslimpauseproxy--resumeproxy)[ / ](#observableslimpauseproxy--resumeproxy)[`resume(proxy)`](#observableslimpauseproxy--resumeproxy)
+  - [`ObservableSlim.pauseChanges(proxy)`](#observableslimpausechangesproxy--resumechangesproxy)[ / ](#observableslimpausechangesproxy--resumechangesproxy)[`resumeChanges(proxy)`](#observableslimpausechangesproxy--resumechangesproxy)
+  - [`ObservableSlim.remove(proxy)`](#observableslimremoveproxy)
+  - [`ObservableSlim.isProxy(obj)`](#observableslimisproxyobj)
+  - [`ObservableSlim.getTarget(proxy)`](#observableslimgettargetproxy)
+  - [`ObservableSlim.getParent(proxy, depth=1)`](#observableslimgetparentproxy-depth1)
+  - [`ObservableSlim.getPath(proxy-options)`](#observableslimgetpathproxy-options)
+  - [Advanced: ](#advanced-observableslimsymbols)[`ObservableSlim.symbols`](#advanced-observableslimsymbols)
+- [Change Record Shape](#change-record-shape)
+- [Usage Examples](#usage-examples)
+  - [Observe and mutate deep structures](#observe-and-mutate-deep-structures)
+  - [Array mutations (push/splice/shift/unshift)](#array-mutations-pushspliceshiftunshift)
+  - [Batched notifications with ](#batched-notifications-with-domdelay)[`domDelay`](#batched-notifications-with-domdelay)
+  - [Dry‑run approvals with ](#dry-run-approvals-with-pausechanges)[`pauseChanges`](#dry-run-approvals-with-pausechanges)
+  - [Paths and parents](#paths-and-parents)
+- [Design & Performance Notes](#design--performance-notes)
+- [Limitations & Browser Support](#limitations--browser-support)
+- [TypeScript](#typescript)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+- [Migration from legacy magic properties](#migration-from-legacy-magic-properties)
+
+---
 
 ## Overview
-Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. Observable Slim aspires to be as highly performant and lightweight as possible. Minifies down to 5KB.
 
-Observable Slim was originally built as part of the **[Nimbly](https://github.com/elliotnb/nimbly)** JS framework where it assisted with state management, state mutation triggers and one-way data binding. Observerable Slim was separated out from Nimbly in order to service other use cases outside of the scope of the **[Nimbly](https://github.com/elliotnb/nimbly)** framework.
+**Observable Slim** mirrors your data in a Proxy and reports *precise* change records—ideal for state management, UI data binding, and tooling. It is small (\~5KB minified), fast, and designed to be predictable and memory‑safe.
 
-## Install
+Version: **0.1.6**\
+License: **MIT**
+
+## Features
+
+- **Deep observation** of objects and arrays (all nested children)
+- **Structured change records** with: `type`, `property`, `currentPath` (dot notation), `jsonPointer` (RFC6901), `previousValue`, `newValue`, `target`, `proxy`
+- **Batched notifications** with `domDelay` (boolean or ms number)
+- **Multiple proxies per target** with safe cross‑proxy propagation
+- **Pause/resume** observers and **pause/resume changes** (dry‑run validation)
+- **Accurate array length tracking** using WeakMap bookkeeping
+- **Introspection helpers**: `isProxy`, `getTarget`, `getParent`, `getPath`
+- **Advanced symbol capabilities** for collision‑free internals
+- **TypeScript declarations** included (`observable-slim.d.ts`)
+
+## Installation
+
+**Browser (UMD):**
 
 ```html
 <script src="observable-slim.js"></script>
+<script>
+  const state = { hello: "world" };
+  const proxy = ObservableSlim.create(state, false, (changes) => console.log(changes));
+</script>
 ```
 
-Also available via NPM:
+**NPM (CommonJS):**
 
+```bash
+npm install observable-slim --save
 ```
-$ npm install observable-slim --save
+
+```js
+const ObservableSlim = require('observable-slim');
 ```
 
-## Usage
+**ES Modules (via bundlers that can import CJS):**
 
-### Create an observer
+```js
+import ObservableSlim from 'observable-slim';
+```
 
-The `create` method is the starting point for using Observable Slim. It is invoked to create a new ES6 `Proxy` whose changes we can observe. The `create` method accepts three parameters:
+## Quick Start
 
-1. `target` (`object`, *required*): plain object that we want to observe for changes.
-2. `domDelay` (`boolean|number`, *required*): if `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`). If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater than zero, then it defines the DOM delay in milliseconds.
-3. `observer` (`function(ObservableSlimChange[])`, *optional*): function that will be invoked when a change is made to the proxy of `target`. When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made. The `ObservableSlimChange` object structure is like below:
-	- `type` (`"add"|"update"|"delete"`, *required*): change type.
-	- `property` (`string`, *required*): property name.
-	- `currentPath` (`string`, *required*): property path with the dot notation (e.g. `foo.0.bar`).
-	- `jsonPointer` (`string`, *required*): property path with the JSON pointer syntax (e.g. `/foo/0/bar`). See [RFC 6901](https://datatracker.ietf.org/doc/html/rfc6901).
-	- `target` (`object`, *required*): target object.
-	- `proxy` (`Proxy`, *required*): proxy of the target object.
-	- `newValue` (`*`, *required*): new value of the property.
-	- `previousValue` (`*`, *optional*): previous value of the property.
+```js
+const state = { user: { name: 'Ada' }, todos: [] };
+const p = ObservableSlim.create(state, true, (changes) => {
+  // Array of change records batched on a small timeout when domDelay === true
+  console.log(changes);
+});
 
-The `create` method will return a standard ES6 `Proxy`.
+p.todos.push({ title: 'Write tests', done: false });
+p.user.name = 'Ada Lovelace';
+```
 
-```javascript
-var test = {};
-var p = ObservableSlim.create(test, true, function(changes) {
-	console.log(JSON.stringify(changes));
+## API
+
+### `ObservableSlim.create(target, domDelay, observer?)`
+
+Create a new Proxy that mirrors `target` and observes all deep changes.
+
+- `target`: *object* (required) – plain object/array to observe.
+- `domDelay`: *boolean|number* (required) – `true` to batch notifications on \~10ms timeout; `false` to notify synchronously; number `> 0` to use a custom delay (ms).
+- `observer(changes)`: *function* (optional) – receives an *array* of change records.
+- **Returns**: the Proxy.
+
+> Note: Passing an existing Proxy produced by Observable Slim is supported; the underlying original target will be used to avoid nested proxying.
+
+### `ObservableSlim.observe(proxy, observer)`
+
+Attach an additional observer to an existing proxy. Observers are called with arrays of change records.
+
+### `ObservableSlim.pause(proxy)` / `resume(proxy)`
+
+Temporarily disable/enable *observer callbacks* for the given proxy (no changes are blocked).
+
+### `ObservableSlim.pauseChanges(proxy)` / `resumeChanges(proxy)`
+
+Disable/enable *writes to the underlying target* while still issuing change records. Useful for approval flows or validations.
+
+### `ObservableSlim.remove(proxy)`
+
+Detach all observers and bookkeeping for the given proxy and its nested proxies created for the same root observable.
+
+### `ObservableSlim.isProxy(obj)`
+
+Return `true` if the argument is a Proxy created by Observable Slim.
+
+### `ObservableSlim.getTarget(proxy)`
+
+Return the original target object behind a Proxy created by Observable Slim.
+
+### `ObservableSlim.getParent(proxy, depth=1)`
+
+Return the parent object of a proxy relative to the top‑level observable (climb `depth` levels; default `1`).
+
+### `ObservableSlim.getPath(proxy, options)`
+
+Return the path string of a proxy relative to its root observable.
+
+- `options = { jsonPointer?: boolean }` – when `true`, return RFC6901 pointer (e.g., `/foo/0/bar`); otherwise dot path (e.g., `foo.0.bar`).
+
+### Advanced: `ObservableSlim.symbols`
+
+For advanced users who need capability‑style access without relying on public helpers, the library exposes collision‑free Symbols:
+
+- `ObservableSlim.symbols.IS_PROXY` – brand symbol; `proxy[IS_PROXY] === true`
+- `ObservableSlim.symbols.TARGET` – unwrap symbol; `proxy[TARGET] === originalObject`
+- `ObservableSlim.symbols.PARENT` – function symbol; `proxy[PARENT](depth)` returns the ancestor
+- `ObservableSlim.symbols.PATH` – path symbol; `proxy[PATH]` returns the dot path
+
+> Symbols are not enumerable and won’t collide with user properties. Prefer the public helpers for most use cases.
+
+## Change Record Shape
+
+Every notification contains an array of objects like:
+
+```ts
+{
+  type: 'add' | 'update' | 'delete',
+  property: string,
+  currentPath: string,   // e.g. "foo.0.bar"
+  jsonPointer: string,   // e.g. "/foo/0/bar"
+  target: object,        // the concrete target that changed
+  proxy: object,         // proxy for the target
+  newValue: any,
+  previousValue?: any
+}
+```
+
+## Usage Examples
+
+### Observer output:
+
+Below, every mutation is followed by the array that your observer handler function receives:
+
+```js
+const test = {};
+const p = ObservableSlim.create(test, false, (changes) => {
+  console.log(JSON.stringify(changes));
 });
 
 p.hello = "world";
-// Console log:
-// [{"type":"add","target":{"hello":"world"},"property":"hello","newValue":"world","currentPath":"hello","jsonPointer":"/hello","proxy":{"hello":"world"}}]
+// => [{
+//   "type":"add","target":{"hello":"world"},"property":"hello",
+//   "newValue":"world","currentPath":"hello","jsonPointer":"/hello",
+//   "proxy":{"hello":"world"}
+// }]
 
 p.hello = "WORLD";
-// Console log:
-// [{"type":"update","target":{"hello":"WORLD"},"property":"hello","newValue":"WORLD","previousValue":"world","currentPath":"hello","jsonPointer":"/hello","proxy":{"hello":"WORLD"}}]
+// => [{
+//   "type":"update","target":{"hello":"WORLD"},"property":"hello",
+//   "newValue":"WORLD","previousValue":"world",
+//   "currentPath":"hello","jsonPointer":"/hello",
+//   "proxy":{"hello":"WORLD"}
+// }]
 
 p.testing = {};
-// Console log:
-// [{"type":"add","target":{"hello":"WORLD","testing":{}},"property":"testing","newValue":{},"currentPath":"testing","jsonPointer":"/testing","proxy":{"hello":"WORLD","testing":{}}}]
+// => [{
+//   "type":"add","target":{"hello":"WORLD","testing":{}},
+//   "property":"testing","newValue":{},
+//   "currentPath":"testing","jsonPointer":"/testing",
+//   "proxy":{"hello":"WORLD","testing":{}}
+// }]
 
 p.testing.blah = 42;
-// Console log:
-// [{"type":"add","target":{"blah":42},"property":"blah","newValue":42,"currentPath":"testing.blah","jsonPointer":"/testing/blah","proxy":{"blah":42}}]
+// => [{
+//   "type":"add","target":{"blah":42},"property":"blah","newValue":42,
+//   "currentPath":"testing.blah","jsonPointer":"/testing/blah",
+//   "proxy":{"blah":42}
+// }]
 
 p.arr = [];
-// Console log:
-// [{"type":"add","target":{"hello":"WORLD","testing":{"blah":42},"arr":[]},"property":"arr","newValue":[],"currentPath":"arr","jsonPointer":"/arr","proxy":{"hello":"WORLD","testing":{"blah":42},"arr":[]}}]
+// => [{
+//   "type":"add","target":{"hello":"WORLD","testing":{"blah":42},"arr":[]},
+//   "property":"arr","newValue":[],
+//   "currentPath":"arr","jsonPointer":"/arr",
+//   "proxy":{"hello":"WORLD","testing":{"blah":42},"arr":[]}
+// }]
 
 p.arr.push("hello world");
-// Console log:
-// [{"type":"add","target":["hello world"],"property":"0","newValue":"hello world","currentPath":"arr.0","jsonPointer":"/arr/0","proxy":["hello world"]}]
+// => [{
+//   "type":"add","target":["hello world"],"property":"0",
+//   "newValue":"hello world","currentPath":"arr.0","jsonPointer":"/arr/0",
+//   "proxy":["hello world"]
+// }]
 
 delete p.hello;
-// Console log:
-// [{"type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},"property":"hello","newValue":null,"previousValue":"WORLD","currentPath":"hello","jsonPointer":"/hello","proxy":{"testing":{"blah":42},"arr":["hello world"]}}]
+// => [{
+//   "type":"delete","target":{"testing":{"blah":42},"arr":["hello world"]},
+//   "property":"hello","newValue":null,"previousValue":"WORLD",
+//   "currentPath":"hello","jsonPointer":"/hello",
+//   "proxy":{"testing":{"blah":42},"arr":["hello world"]}
+// }]
 
 p.arr.splice(0,1);
-// Console log:
-// [{"type":"delete","target":[],"property":"0","newValue":null,"previousValue":"hello world","currentPath":"arr.0","jsonPointer":"/arr/0","proxy":[]},
-// {"type":"update","target":[],"property":"length","newValue":0,"previousValue":1,"currentPath":"arr.length","jsonPointer":"/arr/length","proxy":[]}]
-
-console.log(JSON.stringify(test));
-// Console log:
-// {"testing":{"blah":42},"arr":[]}
-
+// => [{
+//   "type":"delete","target":[],"property":"0","newValue":null,
+//   "previousValue":"hello world","currentPath":"arr.0","jsonPointer":"/arr/0",
+//   "proxy":[]
+// },{
+//   "type":"update","target":[],"property":"length","newValue":0,
+//   "previousValue":1,"currentPath":"arr.length","jsonPointer":"/arr/length",
+//   "proxy":[]
+// }]
 ```
 
-### Nested objects
+### Arrays in detail (push/unshift/pop/shift/splice)
 
-If you wish to observe changes on a parent object and observe changes to an object nested on the parent, you may do so as follows:
-```javascript
-var data = {"testing":{"test":{"testb":"hello world"},"testc":"hello again"},"blah":"tree"};
+```js
+const p = ObservableSlim.create({ arr: ["foo","bar"] }, false, (c) => console.log(JSON.stringify(c)));
 
-var p = ObservableSlim.create(data, true, function(changes) { console.log("First observable");console.log(changes); });
-var pp = ObservableSlim.create(data.testing, true, function(changes) { console.log("Second observable");console.log(changes); });
-var ppp = ObservableSlim.create(data.testing.test, true, function(changes) { console.log("Third observable");console.log(changes); });
+p.arr.unshift("hello");
+// 1) add index 2 moved -> implementation may record reindexes; canonical signal is:
+// [{"type":"add","target":["hello","foo","bar"],"property":"0","newValue":"hello",
+//   "currentPath":"arr.0","jsonPointer":"/arr/0","proxy":["hello","foo","bar"]}]
+
+p.arr.pop();
+// Deleting last element and updating length; commonly two records over one or two callbacks:
+// [{"type":"delete","target":["hello","foo"],"property":"2","newValue":null,
+//   "previousValue":"bar","currentPath":"arr.2","jsonPointer":"/arr/2","proxy":["hello","foo"]}]
+// [{"type":"update","target":["hello","foo"],"property":"length","newValue":2,
+//   "previousValue":3,"currentPath":"arr.length","jsonPointer":"/arr/length","proxy":["hello","foo"]}]
+
+p.arr.splice(1,0,"X");
+// Insert at index 1 and reindex subsequent items:
+// [{"type":"add","target":["hello","X","foo"],"property":"1","newValue":"X",
+//   "currentPath":"arr.1","jsonPointer":"/arr/1","proxy":["hello","X","foo"]}]
+
+p.arr.shift();
+// Move index 1 down to 0, delete old 1, update length. Typical sequence:
+// [{"type":"update","target":["X","foo"],"property":"0","newValue":"X",
+//   "previousValue":"hello","currentPath":"arr.0","jsonPointer":"/arr/0","proxy":["X","foo"]}]
+// [{"type":"delete","target":["X","foo"],"property":"1","newValue":null,
+//   "previousValue":"foo","currentPath":"arr.1","jsonPointer":"/arr/1","proxy":["X","foo"]}]
+// [{"type":"update","target":["X","foo"],"property":"length","newValue":2,
+//   "previousValue":3,"currentPath":"arr.length","jsonPointer":"/arr/length","proxy":["X","foo"]}]
 ```
 
-- A change to `ppp.testb` will trigger the callback on all three observables.
-- A change to `p.testing.test.testb` will also trigger the callback on all three observables.
-- A change to `pp.testc` will only trigger the first and second observable.
-- A change to `p.blah` will only trigger the first observable.
+> Notes: Exact batching of array index/length signals can vary by engine and call path. The shapes above are representative and covered by the test suite (push, unshift, pop, shift, splice, and length tracking).
 
-### Add observers
+### Multiple observers and multiple observables
 
-If you wish to add a second observer function to the same object, you may do so as follows:
-```javascript
+```js
+const data = { foo: { bar: "bar" } };
+const p1 = ObservableSlim.create(data, false, (c) => console.log("p1", c));
+ObservableSlim.observe(p1, (c) => console.log("p1-second", c));
 
-// First, create the observable
-var test = {};
-var proxy = ObservableSlim.create(test, true, function(changes) {
-	console.log(JSON.stringify(changes));
-});
+const p2 = ObservableSlim.create(data, false, (c) => console.log("p2", c));
 
-// Add a new observer function
-ObservableSlim.observe(proxy, function(changes) {
-	console.log(changes);
-});
+p2.foo.bar = "baz"; // triggers both observers on p1 and p2
 ```
 
-### Pause observers
+### Pausing observers vs. pausing changes
 
-If you wish to pause the execution of observer functions, you may do so as follows:
-```javascript
-ObservableSlim.pause(proxy);
+```js
+const p = ObservableSlim.create({ x: 0 }, false, (c) => console.log("obs", c));
+
+ObservableSlim.pause(p);
+p.x = 1;     // no observer callbacks
+ObservableSlim.resume(p);
+
+ObservableSlim.pauseChanges(p);
+p.x = 2;     // observer fires, but underlying target is NOT updated
+console.log(p.x); // still 0
+ObservableSlim.resumeChanges(p);
+p.x = 3;     // observer fires and target is updated
 ```
 
-### Resume observers
+### Introspection helpers and Symbols
 
-While an observable is paused, no observer functions will be invoked when the target object is modified.
+```js
+const state = { a: { b: 1 } };
+const proxy = ObservableSlim.create(state, false, () => {});
 
-To resume the execution of observer functions:
+console.log(ObservableSlim.isProxy(proxy));     // true
+console.log(ObservableSlim.getTarget(proxy) === state); // true
 
-```javascript
-ObservableSlim.resume(proxy);
-```
+const child = proxy.a;
+console.log(ObservableSlim.getParent(child) === proxy);   // parent proxy
+console.log(ObservableSlim.getPath(child));               // 'a'
+console.log(ObservableSlim.getPath(child, { jsonPointer:true })); // '/a'
 
-### Pause changes
-
-If you wish to pause changes to the target data without pausing the execution of the observer functions, you may do so as follows:
-```javascript
-ObservableSlim.pauseChanges(proxy);
-```
-
-### Resume changes
-
-While an observable has changes paused, all observer functions will be invoked, but the target object will not be modified.
-
-To resume changes:
-
-```javascript
-ObservableSlim.resumeChanges(proxy);
+const { TARGET, IS_PROXY, PARENT, PATH } = ObservableSlim.symbols;
+console.log(proxy[IS_PROXY]);      // true
+console.log(proxy[TARGET] === state); // true
+console.log(child[PARENT](1) === proxy); // true
+console.log(child[PATH]);          // 'a'
 ```
 
 ### Remove an observable
 
-When you no longer need to use an observable or monitor the object that it targets, you may remove the observable as follows:
-
-```javascript
-ObservableSlim.remove(proxy);
+```js
+const p = ObservableSlim.create({ y: 1 }, false, () => console.log('called'));
+ObservableSlim.remove(p);
+p.y = 2; // no callbacks after removal
 ```
 
-## Special features
+## Design and Performance Notes
 
-### Proxy check
+- **WeakMaps and Symbols.** Internals use `WeakMap` for O(1) lookups and GC‑friendly bookkeeping, and Symbols for collision‑free introspection.
+- **Multiple proxies per target.** Changes propagate to sibling proxies without infinite loops (see tests around `dupProxy`).
+- **Accurate array lengths.** Length changes are tracked to preserve correct `previousValue` semantics during `push/splice`.
+- **Orphan cleanup.** When an object is overwritten and truly orphaned, its observers are cleaned up on a short timeout to prevent leaks while avoiding churn during transient operations.
+- **Throughput.** The test suite includes coarse performance assertions (e.g., reading/writing \~20k items within tight budgets). Actual throughput depends on environment and workload.
 
-When using ObservableSlim, you can quickly determine whether or not an object is a proxy by checking the `__isProxy` property:
+## Limitations and Browser Support
 
-```javascript
-var test = {"hello":"world"};
-var proxy = ObservableSlim.create(test, true, function(changes) {
-	console.log(JSON.stringify(changes));
-});
+This library requires native ES2015 **Proxy** and **Symbol** support.
 
-console.log(proxy.__isProxy); // returns true
-console.log(test.__isProxy); // undefined property
-```
+- ✅ Chrome 49+, Edge 12+, Firefox 18+, Opera 36+, Safari 10+ (per MDN guidance)
+- ❌ Internet Explorer: not supported
 
-### Look up the original proxied target object
+> Polyfills cannot fully emulate `Proxy`; features like property addition/deletion and `.length` interception will not work under a polyfill.
 
-ObservableSlim allows you to easily fetch a reference to the original object behind a given proxy using the `__getTarget` property:
+## TypeScript
 
-```javascript
+Type declarations are published with the package (`observable-slim.d.ts`). Observer callbacks are strongly typed with the change record shape described above.
 
-var test = {"hello":{"foo":{"bar":"world"}}};
-var proxy = ObservableSlim.create(test, true, function(changes) {});
+## Development
 
-console.log(proxy.__getTarget === test); // returns true
+- **Install deps:** `npm ci`
+- **Run tests:** `npm run test`
+- **Lint:** `npm run lint` / `npm run lint:fix` to identify and correct code formatting.
+- **Type declarations:** `npm run type` generates the `d.ts` file for TypeScript declarations.
+- **Build (minified):** `npm run build` emits `observable-slim.min.js`
 
-```
-
-### Look up a parent object from a child object
-
-ObservableSlim allows you to traverse up from a child object and access the parent object:
-
-```javascript
-
-var test = {"hello":{"foo":{"bar":"world"}}};
-var proxy = ObservableSlim.create(test, true, function(changes) {
-	console.log(JSON.stringify(changes));
-});
-
-function traverseUp(childObj) {
-	console.log(JSON.stringify(childObj.__getParent())); // prints out test.hello: {"foo":{"bar":"world"}}
-	console.log(childObj.__getParent(2)); // attempts to traverse up two levels, returns undefined because test.hello does not have a parent object
-};
-
-traverseUp(proxy.hello.foo);
-```
-
-**Note:** This functionality is not supported by the ES5 Proxy polyfill.
-
-### Retrieve the path of an object relative to the top-level observer
-
-ObservablesSlim also allows you to retrieve the full path of an object relative to the top-level observed object:
-
-```javascript
-var data = {"foo":"bar","arr":[{"test":{}}],"test":{"deeper":{}}};
-var p = ObservableSlim.create(data, false, function(changes) {});
-
-console.log(p.test.deeper.__getPath); // logs "test.deeper"
-
-```
-
-**Note:** This functionality is not supported by the ES5 Proxy polyfill.
-
-## Requirements
-
-For full functionality, Observable Slim requires [ES6 `Proxy`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
-
-As of August 2017, ES6 `Proxy` is supported by Chrome 49+, Edge 12+, Firefox 18+, Opera 36+ and Safari 10+. Internet Explorer does not support ES6 `Proxy`.
-
-#### Limitations ####
-
-Because the Proxy polyfill does not (and will never) fully emulate native ES6 `Proxy`, there are certain use cases that will not work when using Observable Slim with the Proxy polyfill:
-
-1. Object properties must be known at creation time. New properties cannot be added later.
-2. Modifications to `.length` cannot be observed.
-3. Array re-sizing via a `.length` modification cannot be observed.
-4. Property deletions (e.g., `delete proxy.property;`) cannot be observed.
-
-Array mutations **can** be observed through the use of the array mutation methods listed above.
+> The distributed repository already includes compiled artifacts for convenience. Building is only needed if you modify sources.
 
 ## Contributing
 
-Contributions are most welcome!
+Issues and PRs are welcome! Please:
 
-Please be sure to run the commands below against your code before submitting a pull request:
-- `npm run test`: run unit tests.
-- `npm run type`: generate the `d.ts` file for TypeScript declarations.
-- `npm run lint`: analyze the code to quickly find problems.
-- `npm run lint:fix`: fix the problems potentially fixable detected by `npm run lint`.
+1. Write tests for behavioral changes.
+2. Keep the API surface small and predictable.
+3. Run `npm run lint` and `npm run test` before submitting.
+
+## License
+
+[MIT](./LICENSE)
+
+---
+
+## Migration from legacy magic properties
+
+Earlier versions exposed *string‑named* magic fields (e.g., `__isProxy`, `__getTarget`, `__getParent()`, `__getPath`). These have been replaced by safer helpers and Symbols:
+
+| Legacy (deprecated)         | New API                                                                                   |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| `proxy.__isProxy`           | `ObservableSlim.isProxy(proxy)` or `proxy[ObservableSlim.symbols.IS_PROXY]`               |
+| `proxy.__getTarget`         | `ObservableSlim.getTarget(proxy)` or `proxy[ObservableSlim.symbols.TARGET]`               |
+| `proxy.__getParent(depth?)` | `ObservableSlim.getParent(proxy, depth)` or `proxy[ObservableSlim.symbols.PARENT](depth)` |
+| `proxy.__getPath`           | `ObservableSlim.getPath(proxy)` or `proxy[ObservableSlim.symbols.PATH]`                   |
+
+The helpers are preferred for readability and to avoid re‑entering traps unnecessarily.
