@@ -67,7 +67,7 @@ const ObservableSlim = (function() {
 	const _getProperty = function(obj, path) {
 		return path.split('.').reduce(function(prev, curr) {
 			return prev ? prev[curr] : undefined
-		}, obj || self)
+		}, obj)
 	};
 
 	/**
@@ -495,6 +495,10 @@ const ObservableSlim = (function() {
 			observables.push(observable);
 		}
 
+		// Update the brand backreference now that the observable is known (root case).
+		// This enables O(1) control APIs (pause/resume/etc.) to find the owning observable via proxyToRecord.
+		proxyToRecord.set(proxy, { target, observable, path });
+
 		// store the proxy we've created so it isn't re-created unnecessarily via get handler
 		const proxyItem = {"target":target,"proxy":proxy,"observable":observable};
 
@@ -597,17 +601,10 @@ const ObservableSlim = (function() {
 		 * @returns {void} Does not return any value.
 		 */
 		pause: function(proxy) {
-			let i = observables.length;
-			let foundMatch = false;
-			while (i--) {
-				if (observables[i].parentProxy === proxy) {
-					observables[i].paused = true;
-					foundMatch = true;
-					break;
-				}
-			};
-
-			if (foundMatch === false) throw new Error("ObservableSlim could not pause observable -- matching proxy not found.");
+			// O(1) lookup of owning observable via proxyToRecord.
+			const rec = proxyToRecord.get(proxy);
+			if (!rec || !rec.observable) throw new Error("ObservableSlim could not pause observable -- matching proxy not found.");
+			rec.observable.paused = true;
 		},
 
 		/**
@@ -616,17 +613,10 @@ const ObservableSlim = (function() {
 		 * @returns {void} Does not return any value.
 		 */
 		resume: function(proxy) {
-			let i = observables.length;
-			let foundMatch = false;
-			while (i--) {
-				if (observables[i].parentProxy === proxy) {
-					observables[i].paused = false;
-					foundMatch = true;
-					break;
-				}
-			};
-
-			if (foundMatch === false) throw new Error("ObservableSlim could not resume observable -- matching proxy not found.");
+			// O(1) lookup of owning observable via proxyToRecord.
+			const rec = proxyToRecord.get(proxy);
+			if (!rec || !rec.observable) throw new Error("ObservableSlim could not resume observable -- matching proxy not found.");
+			rec.observable.paused = false;
 		},
 
 		/**
@@ -637,17 +627,10 @@ const ObservableSlim = (function() {
 		 * @returns {void} Does not return any value.
 		 */
 		pauseChanges: function(proxy){
-			let i = observables.length;
-			let foundMatch = false;
-			while (i--) {
-				if (observables[i].parentProxy === proxy) {
-					observables[i].changesPaused = true;
-					foundMatch = true;
-					break;
-				}
-			};
-
-			if (foundMatch === false) throw new Error("ObservableSlim could not pause changes on observable -- matching proxy not found.");
+			// O(1) lookup of owning observable via proxyToRecord.
+			const rec = proxyToRecord.get(proxy);
+			if (!rec || !rec.observable) throw new Error("ObservableSlim could not pause changes on observable -- matching proxy not found.");
+			rec.observable.changesPaused = true;
 		},
 
 		/**
@@ -656,17 +639,10 @@ const ObservableSlim = (function() {
 		 * @returns {void} Does not return any value.
 		 */
 		resumeChanges: function(proxy){
-			let i = observables.length;
-			let foundMatch = false;
-			while (i--) {
-				if (observables[i].parentProxy === proxy) {
-					observables[i].changesPaused = false;
-					foundMatch = true;
-					break;
-				}
-			};
-
-			if (foundMatch === false) throw new Error("ObservableSlim could not resume changes on observable -- matching proxy not found.");
+			// O(1) lookup of owning observable via proxyToRecord.
+			const rec = proxyToRecord.get(proxy);
+			if (!rec || !rec.observable) throw new Error("ObservableSlim could not resume changes on observable -- matching proxy not found.");
+			rec.observable.changesPaused = false;
 		},
 
 		/**
@@ -676,20 +652,16 @@ const ObservableSlim = (function() {
 		 */
 		remove: function(proxy) {
 
-			let matchedObservable = null;
-			let foundMatch = false;
-
-			let c = observables.length;
-			while (c--) {
-				if (observables[c].parentProxy === proxy) {
-					matchedObservable = observables[c];
-					foundMatch = true;
-					break;
-				}
-			};
+			// O(1) identify the matched observable via proxyToRecord.
+			const rec = proxyToRecord.get(proxy);
+			if (!rec || !rec.observable) {
+				// Preserve original behavior: if no match, do nothing (no throw).
+				return;
+			}
+			let matchedObservable = rec.observable;
 
 			// Efficient removal using per-observable proxy references (O(k) where k is proxies for this observable).
-			if (foundMatch === true && matchedObservable && matchedObservable.proxyRefs) {
+			if (matchedObservable && matchedObservable.proxyRefs) {
 				let list = matchedObservable.proxyRefs;
 				let i = list.length;
 				while (i--) {
@@ -710,9 +682,14 @@ const ObservableSlim = (function() {
 				matchedObservable.proxyRefs.length = 0;
 			}
 
-			if (foundMatch === true) {
-				observables.splice(c,1);
+			// Remove from the global registry (preserves original semantics).
+			const idx = observables.indexOf(matchedObservable);
+			if (idx !== -1) {
+				observables.splice(idx, 1);
 			}
+
+			// fully invalidate the proxy so future API calls know it’s dead
+			try { proxyToRecord.delete(proxy); } catch (_) {}
 		},
 
 
