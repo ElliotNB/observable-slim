@@ -18,7 +18,7 @@
     "gulp-useref": "^5.0.0",
     "mocha": "^9.2.2",
     "nyc": "^15.1.0",
-    "typescript": "^4.6.3"
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "test": "nyc --reporter=html --reporter=text mocha",

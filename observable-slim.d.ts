@@ -1,12 +1,12 @@
-export function create(target: any, domDelay: number | boolean, observer?: (arg0: {
+export function create<T extends unknown>(target: T, domDelay: boolean | number, observer?: (changes: {
     /**
      * Change type.
      */
     type: "add" | "update" | "delete";
     /**
-     * Property name.
+     * Property name (or symbol).
      */
-    property: string;
+    property: string | symbol;
     /**
      * Property path with the dot notation (e.g. `foo.0.bar`).
      */
@@ -18,11 +18,11 @@ export function create(target: any, domDelay: number | boolean, observer?: (arg0
     /**
      * Target object.
      */
-    target: any;
+    target: object;
     /**
      * Proxy of the target object.
      */
-    proxy: ProxyConstructor;
+    proxy: object;
     /**
      * New value of the property.
      */
@@ -31,16 +31,16 @@ export function create(target: any, domDelay: number | boolean, observer?: (arg0
      * Previous value of the property
      */
     previousValue?: any;
-}[]) => any): ProxyConstructor;
-export function observe(proxy: ProxyConstructor, observer: (arg0: {
+}[]) => void): T;
+export function observe<T extends unknown>(proxy: T, observer: (changes: {
     /**
      * Change type.
      */
     type: "add" | "update" | "delete";
     /**
-     * Property name.
+     * Property name (or symbol).
      */
-    property: string;
+    property: string | symbol;
     /**
      * Property path with the dot notation (e.g. `foo.0.bar`).
      */
@@ -52,11 +52,11 @@ export function observe(proxy: ProxyConstructor, observer: (arg0: {
     /**
      * Target object.
      */
-    target: any;
+    target: object;
     /**
      * Proxy of the target object.
      */
-    proxy: ProxyConstructor;
+    proxy: object;
     /**
      * New value of the property.
      */
@@ -65,9 +65,21 @@ export function observe(proxy: ProxyConstructor, observer: (arg0: {
      * Previous value of the property
      */
     previousValue?: any;
-}[]) => any): void;
-export function pause(proxy: ProxyConstructor): void;
-export function resume(proxy: ProxyConstructor): void;
-export function pauseChanges(proxy: ProxyConstructor): void;
-export function resumeChanges(proxy: ProxyConstructor): void;
-export function remove(proxy: ProxyConstructor): void;
+}[]) => void): void;
+export function pause<T extends unknown>(proxy: T): void;
+export function resume<T extends unknown>(proxy: T): void;
+export function pauseChanges<T extends unknown>(proxy: T): void;
+export function resumeChanges<T extends unknown>(proxy: T): void;
+export function remove<T extends unknown>(proxy: T): void;
+export function isProxy(obj: any): boolean;
+export function getTarget<T extends unknown>(obj: T): T;
+export function getPath(proxy: object, { jsonPointer }?: {
+    jsonPointer?: boolean;
+}): string;
+export function getParent(proxy: object, i?: number): object | undefined;
+export let symbols: {
+    IS_PROXY: symbol;
+    TARGET: symbol;
+    PARENT: symbol;
+    PATH: symbol;
+};

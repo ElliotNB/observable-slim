@@ -72,20 +72,19 @@ const ObservableSlim = (function() {
 
 	/**
 	 * Create a new ES6 `Proxy` whose changes we can observe through the `observe()` method.
-	 * @param {object} target Plain object that we want to observe for changes.
+	 * @template {object} T
+	 * @param {T} target Plain object that we want to observe for changes.
 	 * @param {boolean|number} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
 	 * If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set
 	 * `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater
 	 * than zero, then it defines the DOM delay in milliseconds.
-	 * @param {function(ObservableSlimChange[])} [observer] Function that will be invoked when a change is made to the proxy of `target`.
-	 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
-	 * @param {object} originalObservable The original observable created by the user, exists for recursion purposes, allows one observable to observe
+	 * @param {object} [originalObservable] The original observable created by the user, exists for recursion purposes, allows one observable to observe
 	 * change on any nested/child objects.
-	 * @param {{target: object, property: string}[]} originalPath Array of objects, each object having the properties `target` and `property`:
+	 * @param {{target: object, property: string}[]} [originalPath] Array of objects, each object having the properties `target` and `property`:
 	 * `target` is referring to the observed object itself and `property` referring to the name of that object in the nested structure.
 	 * The path of the property in relation to the target on the original observable, exists for recursion purposes, allows one observable to observe
 	 * change on any nested/child objects.
-	 * @returns {ProxyConstructor} Proxy of the target object.
+	 * @returns {T} Proxy of the target object.
 	 */
 	const _create = function(target, domDelay, originalObservable, originalPath) {
 
@@ -523,26 +522,43 @@ const ObservableSlim = (function() {
 	/**
 	 * @typedef {object} ObservableSlimChange Observed change.
 	 * @property {"add"|"update"|"delete"} type Change type.
-	 * @property {string} property Property name.
+	 * @property {string|symbol} property Property name (or symbol).
 	 * @property {string} currentPath Property path with the dot notation (e.g. `foo.0.bar`).
 	 * @property {string} jsonPointer Property path with the JSON pointer syntax (e.g. `/foo/0/bar`). See https://datatracker.ietf.org/doc/html/rfc6901.
 	 * @property {object} target Target object.
-	 * @property {ProxyConstructor} proxy Proxy of the target object.
+	 * @property {object} proxy Proxy of the target object.
 	 * @property {*} newValue New value of the property.
 	 * @property {*} [previousValue] Previous value of the property
+	 */
+	/**
+	 * A proxy returned by ObservableSlim. At type level this is the same shape as T.
+	 * @template {object} T
+	 * @typedef {T} ObservableProxy
+	 */
+	/** @callback Observer
+	 * @param {ObservableSlimChange[]} changes
+	 * @returns {void}
+	 */
+	/**
+	 * @typedef {object} ObservableSlimSymbols
+	 * @property {symbol} IS_PROXY
+	 * @property {symbol} TARGET
+	 * @property {symbol} PARENT
+	 * @property {symbol} PATH
 	 */
 
 	return {
 		/**
 		 * Create a new ES6 `Proxy` whose changes we can observe through the `observe()` method.
-		 * @param {object} target Plain object that we want to observe for changes.
+		 * @template {object} T
+		 * @param {T} target Plain object that we want to observe for changes.
 		 * @param {boolean|number} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
 		 * If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set
 		 * `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater
 		 * than zero, then it defines the DOM delay in milliseconds.
-		 * @param {function(ObservableSlimChange[])} [observer] Function that will be invoked when a change is made to the proxy of `target`.
+		 * @param {Observer} [observer] Function that will be invoked when a change is made to the proxy of `target`.
 		 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
-		 * @returns {ProxyConstructor} Proxy of the target object.
+		 * @returns {ObservableProxy<T>} Proxy of the target object.
 		 */
 		create: function(target, domDelay, observer) {
 
@@ -565,8 +581,8 @@ const ObservableSlim = (function() {
 			// this will allow the top observable to observe any changes that occur on a nested object
 			(function iterate(pxy) {
 				const rec = proxyToRecord.get(pxy);
-				const tgt = rec ? rec.target : pxy;
-				const keys  = Object.keys(tgt);
+				const tgt  = rec ? rec.target : pxy;
+				const keys = Object.keys(tgt);
 				for (let i = 0, l = keys.length; i < l; i++) {
 					const property = keys[i];
 					if (tgt[property] instanceof Object && tgt[property] !== null) iterate(pxy[property]);
@@ -579,8 +595,9 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Add a new observer function to an existing proxy.
-		 * @param {ProxyConstructor} proxy An ES6 `Proxy` created by the `create()` method.
-		 * @param {function(ObservableSlimChange[])} observer Function that will be invoked when a change is made to the proxy of `target`.
+		 * @template {object} T
+		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @param {Observer} observer Function that will be invoked when a change is made to the proxy of `target`.
 		 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
 		 * @returns {void} Does not return any value.
 		 */
@@ -597,7 +614,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Prevent any observer functions from being invoked when a change occurs to a proxy.
-		 * @param {ProxyConstructor} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template {object} T
+		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		pause: function(proxy) {
@@ -609,7 +627,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Resume execution of any observer functions when a change is made to a proxy.
-		 * @param {ProxyConstructor} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template {object} T
+		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		resume: function(proxy) {
@@ -623,7 +642,8 @@ const ObservableSlim = (function() {
 		 * Prevent any changes (i.e., `set`, and `deleteProperty`) from being written to the target object.
 		 * However, the observer functions will still be invoked to let you know what changes **WOULD** have been made.
 		 * This can be useful if the changes need to be approved by an external source before the changes take effect.
-		 * @param {ProxyConstructor} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template {object} T
+		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		pauseChanges: function(proxy){
@@ -635,7 +655,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Resume the changes that were taking place prior to the call to `pauseChanges()` method.
-		 * @param {ProxyConstructor} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template {object} T
+		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		resumeChanges: function(proxy){
@@ -647,7 +668,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Remove the observable and proxy thereby preventing any further callback observers for changes occurring to the target object.
-		 * @param {ProxyConstructor} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template {object} T
+		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		remove: function(proxy) {
@@ -698,16 +720,17 @@ const ObservableSlim = (function() {
 		 * @param {*} obj
 		 * @returns {boolean}
 		 */
-		isProxy(obj) {
+		isProxy: function(obj) {
 			return proxyToRecord.has(obj) === true;
 		},
 
 		/**
 		 * Returns the original target behind a proxy created by ObservableSlim.
-		 * @param {ProxyConstructor} obj
-		 * @returns {object}
+		 * @template {object} T
+		 * @param {T} obj
+		 * @returns {T}
 		 */
-		getTarget(obj) {
+		getTarget: function(obj) {
 			const rec = proxyToRecord.get(obj);
 			if (!rec) throw new Error("ObservableSlim.getTarget() expects a proxy that was created by ObservableSlim.");
 			return rec.target;
@@ -715,11 +738,11 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Returns the path string for a proxy relative to its root observable.
-		 * @param {ProxyConstructor} proxy
+		 * @param {object} proxy
 		 * @param {{jsonPointer?: boolean}} [opts]
 		 * @returns {string}
 		 */
-		getPath(proxy, { jsonPointer = false } = {}) {
+		getPath: function(proxy, { jsonPointer = false } = {}) {
 			const rec = proxyToRecord.get(proxy);
 			if (!rec) throw new Error("ObservableSlim.getPath() expects a proxy that was created by ObservableSlim.");
 			const pathStr = proxy[S_PATH];
@@ -729,17 +752,18 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Returns the parent object of a proxy, climbing `i` levels.
-		 * @param {ProxyConstructor} proxy
+		 * @param {object} proxy
 		 * @param {number} [i=1]
-		 * @returns {object}
+		 * @returns {object|undefined}
 		 */
-		getParent(proxy, i = 1) {
+		getParent: function(proxy, i = 1) {
 			if (!proxyToRecord.has(proxy)) throw new Error("ObservableSlim.getParent() expects a proxy that was created by ObservableSlim.");
 			return proxy[S_PARENT](i);
 		},
 
 		/**
 		 * Expose the internal Symbols for advanced users.
+		 * @type {ObservableSlimSymbols}
 		 */
 		symbols: {
 			IS_PROXY: S_IS_PROXY,
