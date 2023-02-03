@@ -1,4 +1,4 @@
-export function create<T extends unknown>(target: T, domDelay: boolean | number, observer?: (changes: {
+export function create<T>(target: T & object, domDelay: boolean | number, observer?: (changes: {
     /**
      * Change type.
      */
@@ -32,7 +32,7 @@ export function create<T extends unknown>(target: T, domDelay: boolean | number,
      */
     previousValue?: any;
 }[]) => void): T;
-export function observe<T extends unknown>(proxy: T, observer: (changes: {
+export function observe<T>(proxy: T & object, observer: (changes: {
     /**
      * Change type.
      */
@@ -66,13 +66,13 @@ export function observe<T extends unknown>(proxy: T, observer: (changes: {
      */
     previousValue?: any;
 }[]) => void): void;
-export function pause<T extends unknown>(proxy: T): void;
-export function resume<T extends unknown>(proxy: T): void;
-export function pauseChanges<T extends unknown>(proxy: T): void;
-export function resumeChanges<T extends unknown>(proxy: T): void;
-export function remove<T extends unknown>(proxy: T): void;
+export function pause<T>(proxy: T & object): void;
+export function resume<T>(proxy: T & object): void;
+export function pauseChanges<T>(proxy: T & object): void;
+export function resumeChanges<T>(proxy: T & object): void;
+export function remove<T>(proxy: T & object): void;
 export function isProxy(obj: any): boolean;
-export function getTarget<T extends unknown>(obj: T): T;
+export function getTarget<T>(obj: T & object): T;
 export function getPath(proxy: object, { jsonPointer }?: {
     jsonPointer?: boolean;
 }): string;

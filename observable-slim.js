@@ -72,8 +72,8 @@ const ObservableSlim = (function() {
 
 	/**
 	 * Create a new ES6 `Proxy` whose changes we can observe through the `observe()` method.
-	 * @template {object} T
-	 * @param {T} target Plain object that we want to observe for changes.
+	 * @template T
+	 * @param {T & object} target Plain object that we want to observe for changes.
 	 * @param {boolean|number} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
 	 * If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set
 	 * `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater
@@ -550,15 +550,15 @@ const ObservableSlim = (function() {
 	return {
 		/**
 		 * Create a new ES6 `Proxy` whose changes we can observe through the `observe()` method.
-		 * @template {object} T
-		 * @param {T} target Plain object that we want to observe for changes.
+		 * @template T
+		 * @param {T & object} target Plain object that we want to observe for changes.
 		 * @param {boolean|number} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
 		 * If `false`, then the `observer` function will be immediately invoked after each individual change made to `target`. It is helpful to set
 		 * `domDelay` to `true` when your `observer` function makes DOM manipulations (fewer DOM redraws means better performance). If a number greater
 		 * than zero, then it defines the DOM delay in milliseconds.
 		 * @param {Observer} [observer] Function that will be invoked when a change is made to the proxy of `target`.
 		 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
-		 * @returns {ObservableProxy<T>} Proxy of the target object.
+		 * @returns {T} Proxy of the target object.
 		 */
 		create: function(target, domDelay, observer) {
 
@@ -595,8 +595,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Add a new observer function to an existing proxy.
-		 * @template {object} T
-		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template T
+		 * @param {T & object} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @param {Observer} observer Function that will be invoked when a change is made to the proxy of `target`.
 		 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
 		 * @returns {void} Does not return any value.
@@ -614,8 +614,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Prevent any observer functions from being invoked when a change occurs to a proxy.
-		 * @template {object} T
-		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template T
+		 * @param {T & object} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		pause: function(proxy) {
@@ -627,8 +627,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Resume execution of any observer functions when a change is made to a proxy.
-		 * @template {object} T
-		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template T
+		 * @param {T & object} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		resume: function(proxy) {
@@ -642,8 +642,8 @@ const ObservableSlim = (function() {
 		 * Prevent any changes (i.e., `set`, and `deleteProperty`) from being written to the target object.
 		 * However, the observer functions will still be invoked to let you know what changes **WOULD** have been made.
 		 * This can be useful if the changes need to be approved by an external source before the changes take effect.
-		 * @template {object} T
-		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template T
+		 * @param {T & object} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		pauseChanges: function(proxy){
@@ -655,8 +655,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Resume the changes that were taking place prior to the call to `pauseChanges()` method.
-		 * @template {object} T
-		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template T
+		 * @param {T & object} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		resumeChanges: function(proxy){
@@ -668,8 +668,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Remove the observable and proxy thereby preventing any further callback observers for changes occurring to the target object.
-		 * @template {object} T
-		 * @param {ObservableProxy<T>} proxy An ES6 `Proxy` created by the `create()` method.
+		 * @template T
+		 * @param {T & object} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
 		 */
 		remove: function(proxy) {
@@ -726,8 +726,8 @@ const ObservableSlim = (function() {
 
 		/**
 		 * Returns the original target behind a proxy created by ObservableSlim.
-		 * @template {object} T
-		 * @param {T} obj
+		 * @template T
+		 * @param {T & object} obj
 		 * @returns {T}
 		 */
 		getTarget: function(obj) {
