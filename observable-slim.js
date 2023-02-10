@@ -540,7 +540,7 @@ var ObservableSlim = (function() {
 
 	return {
 		/**
-     * @template Source
+		 * @template Source
 		 * Create a new ES6 `Proxy` whose changes we can observe through the `observe()` method.
 		 * @param {Source} target Plain object that we want to observe for changes.
 		 * @param {boolean|number} domDelay If `true`, then the observed changes to `target` will be batched up on a 10ms delay (via `setTimeout()`).
@@ -584,7 +584,7 @@ var ObservableSlim = (function() {
 		},
 
 		/**
-     * @template Source
+		 * @template Source
 		 * Add a new observer function to an existing proxy.
 		 * @param {Source} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @param {(mutations: ObservableSlimChange[]) => void} observer Function that will be invoked when a change is made to the proxy of `target`.
@@ -603,7 +603,7 @@ var ObservableSlim = (function() {
 		},
 
 		/**
-     * @template Source
+		 * @template Source
 		 * Prevent any observer functions from being invoked when a change occurs to a proxy.
 		 * @param {Source} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
@@ -623,7 +623,7 @@ var ObservableSlim = (function() {
 		},
 
 		/**
-     * @template Source
+		 * @template Source
 		 * Resume execution of any observer functions when a change is made to a proxy.
 		 * @param {Source} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
@@ -643,7 +643,7 @@ var ObservableSlim = (function() {
 		},
 
 		/**
-     * @template Source
+		 * @template Source
 		 * Prevent any changes (i.e., `set`, and `deleteProperty`) from being written to the target object.
 		 * However, the observer functions will still be invoked to let you know what changes **WOULD** have been made.
 		 * This can be useful if the changes need to be approved by an external source before the changes take effect.
@@ -665,7 +665,7 @@ var ObservableSlim = (function() {
 		},
 
 		/**
-     * @template Source
+		 * @template Source
 		 * Resume the changes that were taking place prior to the call to `pauseChanges()` method.
 		 * @param {Source} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
@@ -685,7 +685,7 @@ var ObservableSlim = (function() {
 		},
 
 		/**
-     * @template Source
+		 * @template Source
 		 * Remove the observable and proxy thereby preventing any further callback observers for changes occurring to the target object.
 		 * @param {Source} proxy An ES6 `Proxy` created by the `create()` method.
 		 * @returns {void} Does not return any value.
