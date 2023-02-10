@@ -1,4 +1,4 @@
-export function create(target: any, domDelay: number | boolean, observer?: (arg0: {
+export function create<Source>(target: Source, domDelay: number | boolean, observer?: (mutations: {
     /**
      * Change type.
      */
@@ -18,21 +18,21 @@ export function create(target: any, domDelay: number | boolean, observer?: (arg0
     /**
      * Target object.
      */
-    target: any;
+    target: Source;
     /**
      * Proxy of the target object.
      */
-    proxy: ProxyConstructor;
+    proxy: Source;
     /**
      * New value of the property.
      */
-    newValue: any;
+    newValue: Source;
     /**
      * Previous value of the property
      */
-    previousValue?: any;
-}[]) => any): ProxyConstructor;
-export function observe(proxy: ProxyConstructor, observer: (arg0: {
+    previousValue?: Source;
+}[]) => void): Source;
+export function observe<Source>(proxy: Source, observer: (mutations: {
     /**
      * Change type.
      */
@@ -52,22 +52,22 @@ export function observe(proxy: ProxyConstructor, observer: (arg0: {
     /**
      * Target object.
      */
-    target: any;
+    target: Source;
     /**
      * Proxy of the target object.
      */
-    proxy: ProxyConstructor;
+    proxy: Source;
     /**
      * New value of the property.
      */
-    newValue: any;
+    newValue: Source;
     /**
      * Previous value of the property
      */
-    previousValue?: any;
-}[]) => any): void;
-export function pause(proxy: ProxyConstructor): void;
-export function resume(proxy: ProxyConstructor): void;
-export function pauseChanges(proxy: ProxyConstructor): void;
-export function resumeChanges(proxy: ProxyConstructor): void;
-export function remove(proxy: ProxyConstructor): void;
+    previousValue?: Source;
+}[]) => void): void;
+export function pause<Source>(proxy: Source): void;
+export function resume<Source>(proxy: Source): void;
+export function pauseChanges<Source>(proxy: Source): void;
+export function resumeChanges<Source>(proxy: Source): void;
+export function remove<Source>(proxy: Source): void;
