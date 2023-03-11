@@ -5,6 +5,8 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "esModuleInterop": true,
-    "declarationMap": false
+    "declarationMap": false,
+	"declarationDir": "./dist",
+	"rootDir":"."
   }
 }

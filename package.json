@@ -2,32 +2,49 @@
   "name": "observable-slim",
   "description": "Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. It is intended to assist with state management and one-way data binding.",
   "version": "0.1.6",
-  "main": "observable-slim.js",
-  "devDependencies": {
-    "@babel/core": "^7.17.8",
-    "@babel/eslint-parser": "^7.17.0",
-    "@babel/preset-env": "^7.16.11",
-    "chai": "^4.3.6",
-    "coveralls": "^3.1.1",
-    "eslint": "^8.12.0",
-    "gulp": "^4.0.2",
-    "gulp-babel": "^8.0.0",
-    "gulp-rename": "^2.0.0",
-    "gulp-shell": "^0.8.0",
-    "gulp-uglify-es": "^3.0.0",
-    "gulp-useref": "^5.0.0",
-    "mocha": "^9.2.2",
-    "nyc": "^15.1.0",
-    "typescript": "^5.9.3"
+  "main": "dist/observable-slim.cjs",
+  "module": "dist/observable-slim.mjs",
+  "types": "dist/observable-slim.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/observable-slim.d.ts",
+      "require": "./dist/observable-slim.cjs",
+      "import": "./dist/observable-slim.mjs",
+      "default": "./dist/observable-slim.cjs"
+    }
   },
+  "unpkg": "dist/observable-slim.umd.min.js",
+  "jsdelivr": "dist/observable-slim.umd.min.js",
+  "sideEffects": false,
+  "files": ["dist", "LICENSE", "README.md"],
   "scripts": {
     "test": "nyc --reporter=html --reporter=text mocha",
     "lint": "eslint \"**/*.js\"",
     "lint:fix": "eslint \"**/*.js\" --fix",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
-    "build": "gulp",
+    "build:js": "rollup -c",
+    "build:types": "tsc -p tsconfig.json",
+    "build": "npm run build:js && npm run build:types",
+    "prepublishOnly": "npm run build",
     "type": "npx -p typescript tsc"
   },
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/eslint-parser": "^7.17.0",
+    "@babel/preset-env": "^7.28.5",
+    "@rollup/plugin-babel": "^6.1.0",
+    "@rollup/plugin-commonjs": "^28.0.9",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "chai": "^4.3.6",
+    "coveralls": "^3.1.1",
+    "eslint": "^8.12.0",
+    "mocha": "^9.2.2",
+    "nyc": "^15.1.0",
+    "rollup": "^4.52.5",
+    "typescript": "^5.9.3"
+  },
+  
   "babel": {
     "presets": [
       "@babel/preset-env"

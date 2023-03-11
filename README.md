@@ -357,7 +357,7 @@ p.y = 2; // no callbacks after removal
 
 ## Limitations and Browser Support
 
-This library requires native ES2015 **Proxy** and **Symbol** support.
+This library requires native ES2015 **Proxy**, **WeakMap** and **Symbol** support.
 
 - ✅ Chrome 49+, Edge 12+, Firefox 18+, Opera 36+, Safari 10+ (per MDN guidance)
 - ❌ Internet Explorer: not supported
@@ -374,7 +374,7 @@ Type declarations are published with the package (`observable-slim.d.ts`). Obser
 - **Run tests:** `npm run test`
 - **Lint:** `npm run lint` / `npm run lint:fix` to identify and correct code formatting.
 - **Type declarations:** `npm run type` generates the `d.ts` file for TypeScript declarations.
-- **Build (minified):** `npm run build` emits `observable-slim.min.js`
+- **Build (minified):** `npm run build` emits `.cjs`, `.mjs`, `.js` and `.d.ts` artifacts into the `dist` folder.
 
 > The distributed repository already includes compiled artifacts for convenience. Building is only needed if you modify sources.
 
