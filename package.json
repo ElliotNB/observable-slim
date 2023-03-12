@@ -10,7 +10,7 @@
       "types": "./dist/observable-slim.d.ts",
       "require": "./dist/observable-slim.cjs",
       "import": "./dist/observable-slim.mjs",
-      "default": "./dist/observable-slim.cjs"
+      "default": "./dist/observable-slim.mjs"
     }
   },
   "unpkg": "dist/observable-slim.umd.min.js",
@@ -18,8 +18,13 @@
   "sideEffects": false,
   "files": ["dist", "LICENSE", "README.md"],
   "scripts": {
-    "test": "nyc --reporter=html --reporter=text mocha",
-    "test:types": "npm run build && tsc -p tsconfig.types.json",
+    "test": "nyc --reporter=html --reporter=text mocha \"test/test.js\"",
+    "test:types": "tsc -p tsconfig.types.json",
+    "test:rt:cjs": "node test/cjs.entry.test.cjs && node test/cjs.direct.test.cjs",
+    "test:rt:esm": "node test/esm.entry.test.mjs && node test/esm.direct.test.mjs",
+    "test:rt:umd": "node test/umd.node.test.cjs && node test/umd.global.test.cjs",
+    "test:artifacts": "npm run build && npm run test:types && npm run test:rt:cjs && npm run test:rt:esm && npm run test:rt:umd",
+    "test:all": "npm run test && npm run test:types && npm run test:artifacts",
     "lint": "eslint \"**/*.js\"",
     "lint:fix": "eslint \"**/*.js\" --fix",
     "coverage": "nyc report --reporter=text-lcov | coveralls",

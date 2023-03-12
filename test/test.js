@@ -1051,4 +1051,29 @@ function suite() {
 		expect(ObservableSlim.getParent(p.normal.kid)).to.equal(p.normal);
 	});
 
+	it('54. _getProperty empty-path, normal traversal, and falsy mid-path branches.', () => {
+		// Build a simple nested structure
+		const data = { top: { mid: { leaf: 1 } } };
+		const p = ObservableSlim.create(data, false, function () {});
+
+		// --- Empty path branch: getParent(top-level-child) should return the root proxy.
+		// This hits `_getProperty(observable.parentProxy, "")` -> returns obj itself.
+		const topChild = p.top;
+		expect(ObservableSlim.getParent(topChild)).to.equal(p);
+
+		// --- Normal traversal branch: reducer walks the path successfully
+		// Depth 1 parent of `p.top.mid` is `p.top`; depth 2 parent is the root proxy.
+		const mid = p.top.mid;
+		expect(ObservableSlim.getParent(mid, 1)).to.equal(p.top);
+		expect(ObservableSlim.getParent(mid, 2)).to.equal(p);
+
+		// --- Falsy mid-path branch: a dotted property name makes the reducer hit `prev ? prev[curr] : undefined`
+		// because it splits "a.b" into ["a","b"], and "a" does not exist.
+		p['a.b'] = { child: { n: 1 } };
+		const child = p['a.b'].child; // proxied object
+		const parent = ObservableSlim.getParent(child);
+		expect(parent).to.equal(undefined); // reducer returned undefined mid-way
+	});
+
+
 };

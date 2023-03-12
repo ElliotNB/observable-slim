@@ -7,5 +7,5 @@
     "module": "ES2020",
     "moduleResolution": "Bundler"
   },
-  "include": ["types/**/*.ts"]
+  "include": ["test/**/*.ts"]
 }

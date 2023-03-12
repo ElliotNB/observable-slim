@@ -65,9 +65,11 @@ const ObservableSlim = (function() {
 	let dupProxy = null;
 
 	const _getProperty = function(obj, path) {
+		// If the path is empty/nullish, the "property at path" is the object itself.
+		if (path == null || path === "") return obj;
 		return path.split('.').reduce(function(prev, curr) {
-			return prev ? prev[curr] : undefined
-		}, obj)
+			return prev ? prev[curr] : undefined;
+		}, obj);
 	};
 
 	/**
