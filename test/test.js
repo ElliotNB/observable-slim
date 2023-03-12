@@ -285,7 +285,7 @@ function suite() {
 				firstChange = false;
 				expect(changes[0].type).to.equal("delete");
 				expect(changes[0].previousValue).to.equal("hello world");
-			} else if (change === 0) {
+			} else if (change === 1) {
 				expect(changes[0].type).to.equal("update");
 				expect(changes[0].property).to.equal("length");
 			}

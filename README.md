@@ -68,7 +68,7 @@ License: **MIT**
 **Browser (UMD):**
 
 ```html
-<script src="observable-slim.js"></script>
+<script src="https://unpkg.com/observable-slim"></script>
 <script>
   const state = { hello: "world" };
   const proxy = ObservableSlim.create(state, false, (changes) => console.log(changes));

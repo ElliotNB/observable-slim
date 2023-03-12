@@ -19,6 +19,7 @@
   "files": ["dist", "LICENSE", "README.md"],
   "scripts": {
     "test": "nyc --reporter=html --reporter=text mocha",
+    "test:types": "npm run build && tsc -p tsconfig.types.json",
     "lint": "eslint \"**/*.js\"",
     "lint:fix": "eslint \"**/*.js\" --fix",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
