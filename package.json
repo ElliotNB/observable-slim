@@ -1,7 +1,8 @@
 {
   "name": "observable-slim",
   "description": "Observable Slim is a singleton that utilizes ES6 Proxies to observe changes made to an object and any nested children of that object. It is intended to assist with state management and one-way data binding.",
-  "version": "0.1.6",
+  "version": "0.2.0",
+  "engines": { "node": ">=18" },
   "main": "dist/observable-slim.cjs",
   "module": "dist/observable-slim.mjs",
   "types": "dist/observable-slim.d.ts",

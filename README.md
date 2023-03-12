@@ -48,7 +48,7 @@ https://github.com/elliotnb/observable-slim
 
 **Observable Slim** mirrors your data in a Proxy and reports *precise* change records—ideal for state management, UI data binding, and tooling. It is small (\~5KB minified), fast, and designed to be predictable and memory‑safe.
 
-Version: **0.1.6**\
+Version: **0.2.0**\
 License: **MIT**
 
 ## Features
