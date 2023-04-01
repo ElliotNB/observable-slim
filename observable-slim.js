@@ -410,64 +410,103 @@ const ObservableSlim = (function() {
 										if (target[keys[i]] === targetProp) return;
 									}
 
-									let stillExists = false;
+									/**
+									 * Cycle-safe reachability check in an object/array graph.
+									 *
+									 * Traverses the graph starting at `root` and returns true if the exact object
+									 * reference `needle` is reachable. Uses an explicit stack (iterative DFS) and a
+									 * WeakSet to avoid revisiting nodes, so cycles and shared subgraphs are handled.
+									 */
+									function graphContains(root, needle) {
+										const visited = new WeakSet(); // tracks seen objects without preventing GC
+										const stack = [root]; // LIFO stack for iterative depth-first search
+										while (stack.length) {
+											const node = stack.pop();
 
-									// now we perform the more expensive search recursively through the target object.
-									// if we find the targetProp (that was just overwritten) still exists somewhere else
-									// further down in the object, then we still need to observe the targetProp on this observable.
-									(function iterate(target) {
-										let keys = Object.keys(target);
-										for (let i = 0, l = keys.length; i < l; i++) {
+											// Identity check: we found the exact object reference we're looking for.
+											if (node === needle) return true;
 
-											const property = keys[i];
-											const nestedTarget = target[property];
+											// Ignore null/undefined and primitives.
+											if (!node || typeof node !== "object") continue;
 
-											if (nestedTarget instanceof Object && nestedTarget !== null) iterate(nestedTarget);
-											if (nestedTarget === targetProp) {
-												stillExists = true;
-												return;
+											// Break cycles / shared subgraph re-visits.
+											if (visited.has(node)) continue;
+											visited.add(node);
+
+											// Explore own enumerable children.
+											const keys = Object.keys(node);
+											for (let i = 0; i < keys.length; i++) {
+												let child = node[keys[i]];
+												// If this child is an ObservableSlim proxy, unwrap to the real target
+												// so the traversal/visited set operate on canonical objects.
+												if (child && proxyToRecord.has(child)) child = proxyToRecord.get(child).target;
+												if (child && typeof child === "object") stack.push(child);
 											}
-										};
-									})(target);
+										}
 
-									// even though targetProp was overwritten, if it still exists somewhere else on the object,
-									// then we don't want to remove the observable for that object (targetProp)
-									if (stillExists === true) return;
+										// Exhausted the reachable subgraph without finding `needle`.
+										return false;
+									}
+
+									// If the overwritten object (`targetProp`) is still reachable from `target`,
+									// do NOT detach its proxies—it remains part of the observed graph.
+									if (graphContains(target, targetProp)) return;
 
 									// loop over each property and recursively invoke the `iterate` function for any
 									// objects nested on targetProp
-									(function iterate(obj) {
+									(function cleanupOrphan(root) {
+										//	Visited set prevents infinite loops on cyclic graphs (e.g., a.parent = a).
+										const visited = new WeakSet();
 
-										let keys = Object.keys(obj);
-										for (let i = 0, l = keys.length; i < l; i++) {
-											const objProp = obj[keys[i]];
-											if (objProp instanceof Object && objProp !== null) iterate(objProp);
-										}
+										//	Iterative DFS stack seeded with the orphaned subtree root (the old value).
+										const stack = [root];
 
-										// if there are any existing target objects (objects that we're already observing)...
-										if (targetToProxies.has(obj)) {
+										while (stack.length) {
+											//	Pop the next node to process (LIFO = depth-first).
+											const obj = stack.pop();
 
-											// ...then we want to determine if the observables for that object match our current observable
-											const currentTargetProxy = targetToProxies.get(obj);
-											let d = currentTargetProxy.length;
+											//	Ignore non-objects (primitives, null, undefined).
+											if (!obj || typeof obj !== "object") continue;
 
-											while (d--) {
-												// if we do have an observable monitoring the object thats about to be overwritten
-												// then we can remove that observable from the target object
-												if (observable === currentTargetProxy[d].observable) {
-													currentTargetProxy.splice(d,1);
-													break;
+											//	Skip nodes we've already processed (cycle/shared-subgraph guard).
+											if (visited.has(obj)) continue;
+											visited.add(obj);
+
+											//	Detach this observable’s proxy records for `obj`, if any exist.
+											if (targetToProxies.has(obj)) {
+												const current = targetToProxies.get(obj);
+												let d = current.length;
+												//	Remove only entries whose `.observable` matches our current observable.
+												while (d--) {
+													if (observable === current[d].observable) {
+														current.splice(d, 1);
+													}
+												}
+												//	If no observables remain for this object, drop the WeakMap entry entirely.
+												if (current.length === 0) {
+													targetToProxies.delete(obj);
 												}
 											}
 
-											// if there are no more observables assigned to the target object, then we can remove
-											// the target object altogether. this is necessary to prevent growing memory consumption particularly with large data sets
-											if (currentTargetProxy.length === 0) {
-												targetToProxies.delete(obj);
+											//	Discover children to continue the traversal.
+											//	We only follow own enumerable string-keyed properties for predictability.
+											const keys = Object.keys(obj);
+											for (let i = 0; i < keys.length; i++) {
+												let child = obj[keys[i]];
+
+												//	If a proxied child is encountered, unwrap to the original target so
+												//	visited and identity checks are applied to the real objects.
+												if (child && proxyToRecord.has(child)) {
+													child = proxyToRecord.get(child).target;
+												}
+
+												//	Push object/array children for further processing.
+												if (child && typeof child === "object") {
+													stack.push(child);
+												}
 											}
 										}
-
-									})(targetProp)
+									})(targetProp); //	Run immediately on the just-overwritten old value (the orphan root).
 								}
 							},10000);
 						}
@@ -581,13 +620,23 @@ const ObservableSlim = (function() {
 
 			// recursively loop over all nested objects on the proxy we've just created
 			// this will allow the top observable to observe any changes that occur on a nested object
-			(function iterate(pxy) {
-				const rec = proxyToRecord.get(pxy);
-				const tgt  = rec ? rec.target : pxy;
-				const keys = Object.keys(tgt);
-				for (let i = 0, l = keys.length; i < l; i++) {
-					const property = keys[i];
-					if (tgt[property] instanceof Object && tgt[property] !== null) iterate(pxy[property]);
+			(function walkDeep(rootProxy) {
+				const stack = [rootProxy];
+				const visited = new WeakSet();
+				while (stack.length) {
+					const pxy = stack.pop();
+					const rec = proxyToRecord.get(pxy);
+					const tgt = rec ? rec.target : pxy;
+					if (visited.has(tgt)) continue;
+					visited.add(tgt);
+
+					for (const k of Object.keys(tgt)) {
+						const child = tgt[k];
+						if (child && typeof child === "object") {
+							// triggers get-trap to (re)use/create proxy
+							stack.push(pxy[k]);
+						}
+					}
 				}
 			})(proxy);
 

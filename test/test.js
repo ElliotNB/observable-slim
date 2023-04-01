@@ -1076,4 +1076,79 @@ function suite() {
 	});
 
 
+	it('55. create(): handles self-referential graph (no stack overflow).', () => {
+		// Build a direct self-cycle before creating the observable.
+		const data = {};
+		data.self = data;
+
+		// If infinite recursion is possible, this throws RangeError: Maximum call stack size exceeded.
+		expect(() => ObservableSlim.create(data, false, function () {})).to.not.throw();
+	});
+
+	it('56. Cleanup: orphaned cyclic object does not cause stack overflow.', function (done) {
+		this.timeout(13000);
+
+		// Root observable
+		const root = ObservableSlim.create({}, false, function () {});
+
+		// Create an object that contains a cycle: old.child.parent -> old
+		const old = { child: {} };
+		old.child.parent = old;
+
+		// Attach cyclic object to the observed graph, then overwrite to schedule cleanup
+		root.holder = old;            // attaches proxies beneath holder
+		root.holder = { replaced: 1 } // schedules cleanup in ~10s for `old`
+
+		// If cleanup DFS isn't cycle-safe, the setTimeout cleanup will overflow the stack.
+		// Reaching done() means no overflow occurred during the cleanup sweep.
+		setTimeout(() => { done(); }, 10200);
+	});
+
+	it('57. cleanupOrphan unwraps proxied child and detaches records.', function (done) {
+		this.timeout(13000);
+
+		// Root observable we'll be checking for stray notifications.
+		let rootCalls = 0;
+		const rootData = {};
+		const rootProxy = ObservableSlim.create(rootData, false, function () { rootCalls++; });
+
+		// A separate, "foreign" observable that we'll reference via a proxy inside the orphan.
+		const foreignTarget = { x: 1 };
+		const foreignProxy  = ObservableSlim.create(foreignTarget, false, function () {});
+
+		// Build an object that contains a *proxy* as a child property.
+		// Important: assign the proxy onto a plain object (not via a proxy set trap),
+		// so the raw object graph literally stores a proxy value.
+		const orphan = { inner: 1 };
+		orphan.child = foreignProxy;
+
+		// Attach the orphan under the root observable.
+		rootProxy.holder = orphan;
+
+		// Force the creation of a proxy record for the foreign target under *this* observable
+		// by accessing the nested property before we overwrite it. This makes the later cleanup
+		// responsible for removing that record.
+		void rootProxy.holder.child;
+
+		// Overwrite to schedule the 10s cleanup of the old subtree (`orphan`).
+		rootProxy.holder = { replaced: true };
+
+		// After cleanup runs, changes to the foreign target must NOT notify the root observable.
+		setTimeout(() => {
+			const before = rootCalls;
+
+			// Mutate the foreign object via its own proxy. If cleanup failed to unwrap proxies
+			// and therefore didn’t detach the foreign target, the root would still get notified
+			// via dupProxy propagation.
+			foreignProxy.x = 2;
+
+			// Give any immediate notifications a brief moment to fire.
+			setTimeout(() => {
+				expect(rootCalls).to.equal(before);
+				done();
+			}, 25);
+		}, 10200);
+	});
+
+
 };
