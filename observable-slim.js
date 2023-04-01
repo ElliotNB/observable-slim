@@ -64,6 +64,155 @@ const ObservableSlim = (function() {
 	// to track that a given Proxy was modified from the 'set' handler
 	let dupProxy = null;
 
+	// Cleanup scheduler (coalesces object graph orphan sweeps across writes)
+	// Default delay tries to keep the UI responsive avoid avoid per-write heavy work; configurable via ObservableSlim.configure().
+	let CLEANUP_DELAY_MS = 10000;
+	let cleanupTimer = null;
+	const pendingCleanups = new Map();
+
+	function scheduleCleanup(observable, oldObj) {
+		let set = pendingCleanups.get(oldObj);
+		if (!set) { set = new Set(); pendingCleanups.set(oldObj, set); }
+		set.add(observable);
+
+		if (cleanupTimer !== null) return;
+
+		const run = () => { cleanupTimer = null; flushCleanup(); };
+		// Prefer idle time in browsers; fall back to a timeout elsewhere (e.g., Node).
+		if (typeof requestIdleCallback === 'function') cleanupTimer = requestIdleCallback(run, { timeout: CLEANUP_DELAY_MS });
+		else cleanupTimer = setTimeout(run, CLEANUP_DELAY_MS);
+	}
+
+	function flushCleanup() {
+		const entries = Array.from(pendingCleanups.entries());
+		pendingCleanups.clear();
+		for (const [oldObj, observablesSet] of entries) {
+			for (const obs of observablesSet) {
+				sweepOrphan(obs, oldObj);
+			}
+		}
+	}
+
+	// Cycle-safe reachability check in an object/array graph.
+	// 
+	// Traverses the graph starting at `root` and returns true if the exact object
+	// reference `needle` is reachable. Uses an explicit stack (iterative DFS) and a
+	// WeakSet to avoid revisiting nodes, so cycles and shared subgraphs are handled.
+	function graphContains(root, needle) {
+		const visited = new WeakSet(); // tracks seen objects without preventing GC
+		const stack = [root]; // LIFO stack for iterative depth-first search
+		while (stack.length) {
+			const node = stack.pop();
+
+			// Identity check: we found the exact object reference we're looking for.
+			if (node === needle) return true;
+
+			// Ignore null/undefined and primitives.
+			if (!node || typeof node !== "object") continue;
+
+			// Break cycles / shared subgraph re-visits.
+			if (visited.has(node)) continue;
+			visited.add(node);
+
+			// Explore own enumerable children.
+			const keys = Object.keys(node);
+			for (let i = 0; i < keys.length; i++) {
+				let child = node[keys[i]];
+				// If this child is an ObservableSlim proxy, unwrap to the real target
+				// so the traversal/visited set operate on canonical objects.
+				if (child && proxyToRecord.has(child)) child = proxyToRecord.get(child).target;
+				if (child && typeof child === "object") stack.push(child);
+			}
+		}
+
+		// Exhausted the reachable subgraph without finding `needle`.
+		return false;
+	}
+
+	/**
+	 *	When a property that previously pointed to an object is overwritten with a new value,
+	 *	we schedule a delayed cleanup (via a coalesced scheduler) to prevent blocking the main path.
+	 *	If the old object (targetProp) is no longer reachable from the root observed object
+	 *	(we already checked with graphContains), it has become an "orphan" for this observable.
+	 *	This routine walks that orphaned subgraph and detaches ONLY this observable’s proxy
+	 *	records so we don't leak memory or deliver stray notifications.
+	 *
+	 *	How it works:
+	 *	1. 	Use an explicit stack for iterative DFS (no recursion, cycle-safe).
+	 *	2. 	Skip primitives/nulls and track visited objects in a WeakSet to break cycles.
+	 *	3. 	At each object, remove this observable's entries from targetToProxies[obj].
+	 *		If after removal the entry list is empty, delete the WeakMap key entirely
+	 *		so GC can reclaim the object when unreachable elsewhere.
+	 *	4. 	Traverse children by enumerating own enumerable string keys.
+	 *		If a child is an ObservableSlim proxy, unwrap it to its target so
+	 *		visited/identity checks operate on canonical objects.
+	 *	5. 	Repeat until the stack is exhausted; at that point, all proxies owned by this
+	 *		observable under `root` have been detached.
+	 */
+	function cleanupOrphan(observable, root) {
+		//	Visited set prevents infinite loops on cyclic graphs (e.g., a.parent = a).
+		const visited = new WeakSet();
+
+		//	Iterative DFS stack seeded with the orphaned subtree root (the old value).
+		const stack = [root];
+
+		while (stack.length) {
+			//	Pop the next node to process (LIFO = depth-first).
+			const obj = stack.pop();
+
+			//	Ignore non-objects (primitives, null, undefined).
+			if (!obj || typeof obj !== "object") continue;
+
+			//	Skip nodes we've already processed (cycle/shared-subgraph guard).
+			if (visited.has(obj)) continue;
+			visited.add(obj);
+
+			//	Detach this observable’s proxy records for `obj`, if any exist.
+			if (targetToProxies.has(obj)) {
+				const current = targetToProxies.get(obj);
+				let d = current.length;
+				//	Remove only entries whose `.observable` matches our current observable.
+				while (d--) {
+					if (observable === current[d].observable) {
+						current.splice(d, 1);
+					}
+				}
+				//	If no observables remain for this object, drop the WeakMap entry entirely.
+				if (current.length === 0) {
+					targetToProxies.delete(obj);
+				}
+			}
+
+			//	Discover children to continue the traversal.
+			//	We only follow own enumerable string-keyed properties for predictability.
+			const keys = Object.keys(obj);
+			for (let i = 0; i < keys.length; i++) {
+				let child = obj[keys[i]];
+
+				//	If a proxied child is encountered, unwrap to the original target so
+				//	visited and identity checks are applied to the real objects.
+				if (child && proxyToRecord.has(child)) {
+					child = proxyToRecord.get(child).target;
+				}
+
+				//	Push object/array children for further processing.
+				if (child && typeof child === "object") {
+					stack.push(child);
+				}
+			}
+		}
+	}
+
+	// Performs a single orphan sweep for a given observable + old object:
+	// - If the old object is still reachable from the observable's root, skip.
+	// - Otherwise, detach this observable's proxy records beneath that subtree.
+	function sweepOrphan(observable, oldObj) {
+		if (!oldObj || typeof oldObj !== "object") return;
+		const root = observable.parentTarget;
+		if (graphContains(root, oldObj)) return;
+		cleanupOrphan(observable, oldObj);
+	}
+
 	const _getProperty = function(obj, path) {
 		// If the path is empty/nullish, the "property at path" is the object itself.
 		if (path == null || path === "") return obj;
@@ -395,120 +544,11 @@ const ObservableSlim = (function() {
 
 							// if the property being overwritten is an object, then that means this observable
 							// will need to stop monitoring this object and any nested objects underneath the overwritten object else they'll become
-							// orphaned and grow memory usage. we execute this on a setTimeout so that the clean-up process does not block
-							// the UI rendering -- there's no need to execute the clean up immediately
-							setTimeout(function() {
-
-								if (typeOfTargetProp === "object" && targetProp !== null) {
-
-									// check if the to-be-overwritten target property still exists on the target object
-									// if it does still exist on the object, then we don't want to stop observing it. this resolves
-									// an issue where array .sort() triggers objects to be overwritten, but instead of being overwritten
-									// and discarded, they are shuffled to a new position in the array
-									let keys = Object.keys(target);
-									for (let i = 0, l = keys.length; i < l; i++) {
-										if (target[keys[i]] === targetProp) return;
-									}
-
-									/**
-									 * Cycle-safe reachability check in an object/array graph.
-									 *
-									 * Traverses the graph starting at `root` and returns true if the exact object
-									 * reference `needle` is reachable. Uses an explicit stack (iterative DFS) and a
-									 * WeakSet to avoid revisiting nodes, so cycles and shared subgraphs are handled.
-									 */
-									function graphContains(root, needle) {
-										const visited = new WeakSet(); // tracks seen objects without preventing GC
-										const stack = [root]; // LIFO stack for iterative depth-first search
-										while (stack.length) {
-											const node = stack.pop();
-
-											// Identity check: we found the exact object reference we're looking for.
-											if (node === needle) return true;
-
-											// Ignore null/undefined and primitives.
-											if (!node || typeof node !== "object") continue;
-
-											// Break cycles / shared subgraph re-visits.
-											if (visited.has(node)) continue;
-											visited.add(node);
-
-											// Explore own enumerable children.
-											const keys = Object.keys(node);
-											for (let i = 0; i < keys.length; i++) {
-												let child = node[keys[i]];
-												// If this child is an ObservableSlim proxy, unwrap to the real target
-												// so the traversal/visited set operate on canonical objects.
-												if (child && proxyToRecord.has(child)) child = proxyToRecord.get(child).target;
-												if (child && typeof child === "object") stack.push(child);
-											}
-										}
-
-										// Exhausted the reachable subgraph without finding `needle`.
-										return false;
-									}
-
-									// If the overwritten object (`targetProp`) is still reachable from `target`,
-									// do NOT detach its proxies—it remains part of the observed graph.
-									if (graphContains(target, targetProp)) return;
-
-									// loop over each property and recursively invoke the `iterate` function for any
-									// objects nested on targetProp
-									(function cleanupOrphan(root) {
-										//	Visited set prevents infinite loops on cyclic graphs (e.g., a.parent = a).
-										const visited = new WeakSet();
-
-										//	Iterative DFS stack seeded with the orphaned subtree root (the old value).
-										const stack = [root];
-
-										while (stack.length) {
-											//	Pop the next node to process (LIFO = depth-first).
-											const obj = stack.pop();
-
-											//	Ignore non-objects (primitives, null, undefined).
-											if (!obj || typeof obj !== "object") continue;
-
-											//	Skip nodes we've already processed (cycle/shared-subgraph guard).
-											if (visited.has(obj)) continue;
-											visited.add(obj);
-
-											//	Detach this observable’s proxy records for `obj`, if any exist.
-											if (targetToProxies.has(obj)) {
-												const current = targetToProxies.get(obj);
-												let d = current.length;
-												//	Remove only entries whose `.observable` matches our current observable.
-												while (d--) {
-													if (observable === current[d].observable) {
-														current.splice(d, 1);
-													}
-												}
-												//	If no observables remain for this object, drop the WeakMap entry entirely.
-												if (current.length === 0) {
-													targetToProxies.delete(obj);
-												}
-											}
-
-											//	Discover children to continue the traversal.
-											//	We only follow own enumerable string-keyed properties for predictability.
-											const keys = Object.keys(obj);
-											for (let i = 0; i < keys.length; i++) {
-												let child = obj[keys[i]];
-
-												//	If a proxied child is encountered, unwrap to the original target so
-												//	visited and identity checks are applied to the real objects.
-												if (child && proxyToRecord.has(child)) {
-													child = proxyToRecord.get(child).target;
-												}
-
-												//	Push object/array children for further processing.
-												if (child && typeof child === "object") {
-													stack.push(child);
-												}
-											}
-										}
-									})(targetProp); //	Run immediately on the just-overwritten old value (the orphan root).
-								}
-							},10000);
+							// orphaned and grow memory usage. this is now handled by a coalesced, configurable scheduler
+							if (typeOfTargetProp === "object" && targetProp !== null) {
+								// schedule cleanup of the old subtree (`targetProp`) for this observable
+								scheduleCleanup(observable, targetProp);
+							}
 						}
 
 					};
@@ -821,6 +861,31 @@ const ObservableSlim = (function() {
 			TARGET:   S_TARGET,
 			PARENT:   S_PARENT,
 			PATH:     S_PATH
+		},
+
+		/**
+		 * Configure library behaviors.
+		 * Currently supports: { cleanupDelayMs: number }
+		 */
+		configure: function(opts = {}) {
+			if (typeof opts.cleanupDelayMs === 'number' && opts.cleanupDelayMs >= 0) {
+				CLEANUP_DELAY_MS = opts.cleanupDelayMs;
+			}
+		},
+
+		/**
+		 * Force any pending orphan cleanups to run immediately.
+		 * Useful in tests for deterministic timing.
+		 */
+		flushCleanup: function() {
+			if (cleanupTimer && typeof cancelIdleCallback === 'function') {
+				try { cancelIdleCallback(cleanupTimer); } catch (_) {}
+			}
+			if (cleanupTimer && typeof clearTimeout === 'function') {
+				try { clearTimeout(cleanupTimer); } catch (_) {}
+			}
+			cleanupTimer = null;
+			flushCleanup();
 		}
 	};
 })();

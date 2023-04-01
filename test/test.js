@@ -4,13 +4,18 @@ const assert = chai.assert;
 const ObservableSlim = require("../observable-slim.js");
 
 describe('Native Proxy', function() {
-	this.timeout(12000);
 	suite();
 });
 
 function suite() {
 
 	let test, p;
+
+	before(() => {
+		// Set to a small number just to exercise the configure method.
+		// Below in our tests, we  manually invoke the flushCleanup method.
+		ObservableSlim.configure({ cleanupDelayMs: 1 });
+	});
 
 	beforeEach(() => {
 		test = {};
@@ -691,10 +696,10 @@ function suite() {
 		p.testing = {};
 		p.dupe = {};
 
+		// Force the cleanup to run now
+		ObservableSlim.flushCleanup();
 
-		setTimeout(function() {
-			p.blah.dupe.duplicate = "should catch this change";
-		},10500);
+		p.blah.dupe.duplicate = "should catch this change";
 
 	});
 
@@ -948,7 +953,15 @@ function suite() {
 
 
 	it('50. Cleanup removes last proxy record for overwritten dynamic object and skips unproxied descendants', function (done) {
-		this.timeout(13000);
+
+		const prevRIC = global.requestIdleCallback;
+		const prevCIC = global.cancelIdleCallback;
+		let cancelCalled = 0;
+
+		// Return a fake handle and DO NOT invoke the callback here;
+		// we want cleanupTimer to stay truthy so flushCleanup() cancels it.
+		global.requestIdleCallback = function(cb, opts) { return 12345; };
+		global.cancelIdleCallback = function(id) { expect(id).to.equal(12345); cancelCalled++; };
 
 		const data = {};
 		let calls = 0;
@@ -959,21 +972,25 @@ function suite() {
 		p.parent = oldParent;            // calls += 1
 		p.parent = { replaced: true };   // calls += 1 and schedules 10s cleanup for oldParent
 
-		// After cleanup runs, mutating the old unproxied descendants should NOT notify.
-		setTimeout(() => {
-			const before = calls;
-			oldParent.child.grand.leaf = 2; // raw object (no proxy), should not notify p
+		// Force the cleanup to run now
+		ObservableSlim.flushCleanup();
 
-			// Tiny delay to catch any accidental notifications
-			setTimeout(() => {
-				expect(calls).to.equal(before);
-				done();
-			}, 20);
-		}, 10200);
+		expect(cancelCalled).to.equal(1);
+		global.requestIdleCallback = prevRIC;
+		global.cancelIdleCallback = prevCIC;
+
+		// After cleanup runs, mutating the old unproxied descendants should NOT notify.
+		const before = calls;
+		oldParent.child.grand.leaf = 2; // raw object (no proxy), should not notify p
+
+		// Tiny delay to catch any accidental notifications
+		setTimeout(() => {
+			expect(calls).to.equal(before);
+			done();
+		}, 20);
 	});
 
-	it('51. Cleanup preserves other observables proxies (does not delete map when entries remain)', function (done) {
-		this.timeout(13000);
+	it('51. Cleanup preserves other observables proxies (does not delete map when entries remain)', function () {
 
 		// Two observables over the same target to ensure the proxy list has >1 entry.
 		const root = { parent: { child: 1 } };
@@ -989,19 +1006,18 @@ function suite() {
 		// but p2's entry should remain (so the map is not deleted).
 		p1.parent = { newChild: 2 }; // calls1 += 1, and via dupProxy propagation calls2 += 1
 
-		setTimeout(() => {
-			const before2 = calls2;
+		// Force the cleanup to run now
+		ObservableSlim.flushCleanup();
 
-			// Mutate the old parent *through p2's proxy*; p2 should still be notified,
-			// proving the entry for that object wasn't deleted globally.
-			oldParentProxyForP2.child = 42;
+		const before2 = calls2;
 
-			expect(calls2).to.equal(before2 + 1);
-			// p1 should not be notified by this last mutation on the orphaned proxy
-			expect(calls1).to.equal(1);
+		// Mutate the old parent *through p2's proxy*; p2 should still be notified,
+		// proving the entry for that object wasn't deleted globally.
+		oldParentProxyForP2.child = 42;
 
-			done();
-		}, 10200);
+		expect(calls2).to.equal(before2 + 1);
+		// p1 should not be notified by this last mutation on the orphaned proxy
+		expect(calls1).to.equal(1);
 	});
 
 	it('52. remove() detaches one observable but preserves target entries when others remain', () => {
@@ -1086,7 +1102,6 @@ function suite() {
 	});
 
 	it('56. Cleanup: orphaned cyclic object does not cause stack overflow.', function (done) {
-		this.timeout(13000);
 
 		// Root observable
 		const root = ObservableSlim.create({}, false, function () {});
@@ -1099,13 +1114,13 @@ function suite() {
 		root.holder = old;            // attaches proxies beneath holder
 		root.holder = { replaced: 1 } // schedules cleanup in ~10s for `old`
 
-		// If cleanup DFS isn't cycle-safe, the setTimeout cleanup will overflow the stack.
-		// Reaching done() means no overflow occurred during the cleanup sweep.
-		setTimeout(() => { done(); }, 10200);
+		// If cleanup DFS isn't cycle-safe, the cleanup will overflow the stack.
+		// Force the cleanup to run now
+		ObservableSlim.flushCleanup();
+		done();
 	});
 
 	it('57. cleanupOrphan unwraps proxied child and detaches records.', function (done) {
-		this.timeout(13000);
 
 		// Root observable we'll be checking for stray notifications.
 		let rootCalls = 0;
@@ -1130,24 +1145,21 @@ function suite() {
 		// responsible for removing that record.
 		void rootProxy.holder.child;
 
-		// Overwrite to schedule the 10s cleanup of the old subtree (`orphan`).
+		// Overwrite to schedule the cleanup of the old subtree (`orphan`).
 		rootProxy.holder = { replaced: true };
 
-		// After cleanup runs, changes to the foreign target must NOT notify the root observable.
-		setTimeout(() => {
-			const before = rootCalls;
+		// Force the cleanup to run now
+		ObservableSlim.flushCleanup();
 
-			// Mutate the foreign object via its own proxy. If cleanup failed to unwrap proxies
-			// and therefore didn’t detach the foreign target, the root would still get notified
-			// via dupProxy propagation.
-			foreignProxy.x = 2;
+		const before = rootCalls;
 
-			// Give any immediate notifications a brief moment to fire.
-			setTimeout(() => {
-				expect(rootCalls).to.equal(before);
-				done();
-			}, 25);
-		}, 10200);
+		// Mutate the foreign object via its own proxy. If cleanup failed to unwrap proxies
+		// and therefore didn’t detach the foreign target, the root would still get notified
+		// via dupProxy propagation.
+		foreignProxy.x = 2;
+
+		expect(rootCalls).to.equal(before);
+		done();
 	});
 
 
