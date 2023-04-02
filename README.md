@@ -4,15 +4,12 @@
 
 https://github.com/elliotnb/observable-slim
 
-*A small, dependency‑free deep observer for plain objects and arrays, powered by ES2015 Proxies.*
+*A small, dependency-free library that watches deep changes in plain JavaScript objects/arrays and tells you exactly what changed.*
 
-> Watches your data (including all nested children) and emits structured change records (`add` / `update` / `delete`) with the property name, a dot‑path and RFC6901 JSON Pointer, previous/new values, and the originating proxy.
-
----
+> Observable Slim mirrors JavaScript objects and arrays using ES2015 Proxy, letting you observe deeply nested changes with clear notifications using dotted paths and RFC-6901 JSON Pointers. It safely handles circular references, ensures fast O(1) performance through WeakMap/WeakSet identity tables, and keeps paths accurate even when arrays reorder. You can send updates immediately or batch them for smoother UI rendering. It also efficiently manages proxies, lets you pause or validate updates, and cleans up memory safely when data is removed. Lightweight (~6 KB minified), dependency-free, and memory-safe, it's well-suited for UI data binding, state management, audit trails, debugging tools, telemetry/profiling, or collaborative editing using CRDT or OT algorithms.
 
 ## Table of Contents
 
-- [Overview](#overview)
 - [Design (Deep Dive)](#design-deep-dive)
 - [Features](#features)
 - [Installation](#installation)
@@ -25,19 +22,9 @@ https://github.com/elliotnb/observable-slim
 - [Development](#development)
 - [Contributing](#contributing)
 
----
-
-## Overview
-
-**Observable Slim** mirrors your data in a Proxy and reports *precise* change records—ideal for state management, UI data binding, and tooling. It is small (~6KB minified), fast, and designed to be predictable and memory-safe.
-
-Version: **0.2.1**
-
-License: **MIT**
-
 ## Design (Deep Dive)
 
-Curious about the underlying architecture and implementation? See **docs/design.md** for the problem model, core algorithms, complexity, invariants, cycle-safe instrumentation, cross-proxy fan-out, reachability-based teardown, and correctness arguments. It's optional reading, but helpful if you want to understand how the internals stay fast and memory-safe.
+Curious about the underlying architecture and implementation? See **[docs/design.md](docs/design.md)** for the problem model, core algorithms, complexity, invariants, cycle-safe instrumentation, cross-proxy fan-out, reachability-based teardown, and correctness arguments. It's optional reading, but helpful if you want to understand how the internals stay fast and memory-safe.
 
 ## Features
 
@@ -374,8 +361,6 @@ Type declarations are published with the package (`observable-slim.d.ts`). Obser
 - **Lint:** `npm run lint` / `npm run lint:fix` to identify and correct code formatting.
 - **Type declarations:** `npm run type` generates the `d.ts` file for TypeScript declarations.
 - **Build (minified):** `npm run build` emits `.cjs`, `.mjs`, `.js` and `.d.ts` artifacts into the `dist` folder.
-
-> The distributed repository already includes compiled artifacts for convenience. Building is only needed if you modify sources.
 
 ## Contributing
 
