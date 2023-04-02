@@ -13,54 +13,43 @@ https://github.com/elliotnb/observable-slim
 ## Table of Contents
 
 - [Overview](#overview)
+- [Design (Deep Dive)](#design-deep-dive)
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [API](#api)
-  - [`ObservableSlim.create(target, domDelay, observer?)`](#observableslimcreatetarget-domdelay-observer)
-  - [`ObservableSlim.observe(proxy, observer)`](#observableslimobserveproxy-observer)
-  - [`ObservableSlim.pause(proxy)`](#observableslimpauseproxy--resumeproxy)[ / ](#observableslimpauseproxy--resumeproxy)[`resume(proxy)`](#observableslimpauseproxy--resumeproxy)
-  - [`ObservableSlim.pauseChanges(proxy)`](#observableslimpausechangesproxy--resumechangesproxy)[ / ](#observableslimpausechangesproxy--resumechangesproxy)[`resumeChanges(proxy)`](#observableslimpausechangesproxy--resumechangesproxy)
-  - [`ObservableSlim.remove(proxy)`](#observableslimremoveproxy)
-  - [`ObservableSlim.isProxy(obj)`](#observableslimisproxyobj)
-  - [`ObservableSlim.getTarget(proxy)`](#observableslimgettargetproxy)
-  - [`ObservableSlim.getParent(proxy, depth=1)`](#observableslimgetparentproxy-depth1)
-  - [`ObservableSlim.getPath(proxy-options)`](#observableslimgetpathproxy-options)
-  - [Advanced: ](#advanced-observableslimsymbols)[`ObservableSlim.symbols`](#advanced-observableslimsymbols)
 - [Change Record Shape](#change-record-shape)
 - [Usage Examples](#usage-examples)
-  - [Observe and mutate deep structures](#observe-and-mutate-deep-structures)
-  - [Array mutations (push/splice/shift/unshift)](#array-mutations-pushspliceshiftunshift)
-  - [Batched notifications with ](#batched-notifications-with-domdelay)[`domDelay`](#batched-notifications-with-domdelay)
-  - [Dry‑run approvals with ](#dry-run-approvals-with-pausechanges)[`pauseChanges`](#dry-run-approvals-with-pausechanges)
-  - [Paths and parents](#paths-and-parents)
-- [Design & Performance Notes](#design--performance-notes)
-- [Limitations & Browser Support](#limitations--browser-support)
+- [Limitations and Browser Support](#limitations-and-browser-support)
 - [TypeScript](#typescript)
 - [Development](#development)
 - [Contributing](#contributing)
-- [License](#license)
-- [Migration from legacy magic properties](#migration-from-legacy-magic-properties)
 
 ---
 
 ## Overview
 
-**Observable Slim** mirrors your data in a Proxy and reports *precise* change records—ideal for state management, UI data binding, and tooling. It is small (\~5KB minified), fast, and designed to be predictable and memory‑safe.
+**Observable Slim** mirrors your data in a Proxy and reports *precise* change records—ideal for state management, UI data binding, and tooling. It is small (~6KB minified), fast, and designed to be predictable and memory-safe.
 
-Version: **0.2.0**\
+Version: **0.2.0**
+
 License: **MIT**
+
+## Design (Deep Dive)
+
+Curious about the underlying architecture and implementation? See **docs/design.md** for the problem model, core algorithms, complexity, invariants, cycle-safe instrumentation, cross-proxy fan-out, reachability-based teardown, and correctness arguments. It's optional reading, but helpful if you want to understand how the internals stay fast and memory-safe.
 
 ## Features
 
 - **Deep observation** of objects and arrays (all nested children)
 - **Structured change records** with: `type`, `property`, `currentPath` (dot notation), `jsonPointer` (RFC6901), `previousValue`, `newValue`, `target`, `proxy`
 - **Batched notifications** with `domDelay` (boolean or ms number)
-- **Multiple proxies per target** with safe cross‑proxy propagation
-- **Pause/resume** observers and **pause/resume changes** (dry‑run validation)
+- **Multiple proxies per target** with safe cross-proxy propagation
+- **Pause/resume** observers and **pause/resume changes** (dry-run validation)
 - **Accurate array length tracking** using WeakMap bookkeeping
 - **Introspection helpers**: `isProxy`, `getTarget`, `getParent`, `getPath`
-- **Advanced symbol capabilities** for collision‑free internals
+- **Advanced symbol capabilities** for collision-free internals
+- **Configurable orphan-cleanup scheduler** (`configure({ cleanupDelayMs })`) and a **test hook** (`flushCleanup()`) to run pending cleanups immediately
 - **TypeScript declarations** included (`observable-slim.d.ts`)
 
 ## Installation
@@ -143,7 +132,7 @@ Return the original target object behind a Proxy created by Observable Slim.
 
 ### `ObservableSlim.getParent(proxy, depth=1)`
 
-Return the parent object of a proxy relative to the top‑level observable (climb `depth` levels; default `1`).
+Return the parent object of a proxy relative to the top-level observable (climb `depth` levels; default `1`).
 
 ### `ObservableSlim.getPath(proxy, options)`
 
@@ -153,7 +142,7 @@ Return the path string of a proxy relative to its root observable.
 
 ### Advanced: `ObservableSlim.symbols`
 
-For advanced users who need capability‑style access without relying on public helpers, the library exposes collision‑free Symbols:
+For advanced users who need capability-style access without relying on public helpers, the library exposes collision-free Symbols:
 
 - `ObservableSlim.symbols.IS_PROXY` – brand symbol; `proxy[IS_PROXY] === true`
 - `ObservableSlim.symbols.TARGET` – unwrap symbol; `proxy[TARGET] === originalObject`
@@ -161,6 +150,24 @@ For advanced users who need capability‑style access without relying on public 
 - `ObservableSlim.symbols.PATH` – path symbol; `proxy[PATH]` returns the dot path
 
 > Symbols are not enumerable and won’t collide with user properties. Prefer the public helpers for most use cases.
+
+### `ObservableSlim.configure(options)`
+
+Configure behavior that affects all observables created in this runtime.
+
+- `options.cleanupDelayMs: number` – delay (ms) used by the orphan-cleanup scheduler. Set to `0` to run cleanups eagerly; increase to coalesce more work.
+
+```js
+ObservableSlim.configure({ cleanupDelayMs: 25 });
+```
+
+### `ObservableSlim.flushCleanup()`
+
+Force any pending orphan cleanups to run immediately. Useful in tests for deterministic timing; safe to call in production if you need to flush scheduled cleanups now.
+
+```js
+ObservableSlim.flushCleanup();
+```
 
 ## Change Record Shape
 
@@ -347,14 +354,6 @@ ObservableSlim.remove(p);
 p.y = 2; // no callbacks after removal
 ```
 
-## Design and Performance Notes
-
-- **WeakMaps and Symbols.** Internals use `WeakMap` for O(1) lookups and GC‑friendly bookkeeping, and Symbols for collision‑free introspection.
-- **Multiple proxies per target.** Changes propagate to sibling proxies without infinite loops (see tests around `dupProxy`).
-- **Accurate array lengths.** Length changes are tracked to preserve correct `previousValue` semantics during `push/splice`.
-- **Orphan cleanup.** When an object is overwritten and truly orphaned, its observers are cleaned up on a short timeout to prevent leaks while avoiding churn during transient operations.
-- **Throughput.** The test suite includes coarse performance assertions (e.g., reading/writing \~20k items within tight budgets). Actual throughput depends on environment and workload.
-
 ## Limitations and Browser Support
 
 This library requires native ES2015 **Proxy**, **WeakMap** and **Symbol** support.
@@ -394,7 +393,7 @@ Issues and PRs are welcome! Please:
 
 ## Migration from legacy magic properties
 
-Earlier versions exposed *string‑named* magic fields (e.g., `__isProxy`, `__getTarget`, `__getParent()`, `__getPath`). These have been replaced by safer helpers and Symbols:
+Earlier versions exposed *string-named* magic fields (e.g., `__isProxy`, `__getTarget`, `__getParent()`, `__getPath`). These have been replaced by safer helpers and Symbols:
 
 | Legacy (deprecated)         | New API                                                                                   |
 | --------------------------- | ----------------------------------------------------------------------------------------- |
@@ -403,4 +402,5 @@ Earlier versions exposed *string‑named* magic fields (e.g., `__isProxy`, `__ge
 | `proxy.__getParent(depth?)` | `ObservableSlim.getParent(proxy, depth)` or `proxy[ObservableSlim.symbols.PARENT](depth)` |
 | `proxy.__getPath`           | `ObservableSlim.getPath(proxy)` or `proxy[ObservableSlim.symbols.PATH]`                   |
 
-The helpers are preferred for readability and to avoid re‑entering traps unnecessarily.
+The helpers are preferred for readability and to avoid re-entering traps unnecessarily.
+
