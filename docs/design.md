@@ -34,8 +34,8 @@
 
 **Key tables and slots**
 
-- **Brand table.** `proxyToRecord: WeakMap<proxy -> { target, observable, path }>`  
-  O(1) brand checks and fast access to an owning observable/path. *(A **WeakMap** is a GC-friendly map keyed by objects; entries vanish when keys are unreachable.)*
+- **Brand table.** `proxyToRecord: WeakMap<proxy -> { target, observable, parent, property }>`  
+  O(1) brand checks and fast access to the parent proxy for path reconstruction.
 
 - **Target table.** `targetToProxies: WeakMap<target -> Array<{ target, proxy, observable }>>`  
   O(1) average lookup to find sibling proxies for fan-out.
@@ -55,11 +55,13 @@
 **Creation (`create` -> `_create`)**
 
 1. **Root proxy** created with traps; `observe()` attaches callbacks.  
-2. **Deep walk**: iterative DFS algorithm (stack + `WeakSet`) touches reachable children once, triggering `get` so nested proxies are created/reused. Circular reference safe. *(A **WeakSet** remembers visited objects without preventing GC; “iterative DFS” means a loop with a stack—no recursion, so no risk of stack overflow on deep graphs.)*
+2. **Deep walk**: iterative DFS algorithm (stack + `WeakSet`) touches reachable children once.
 3. **`get` trap**:
-   - Returns bound methods for `Date` targets (e.g., `getTime`, `toString`) to preserve `this`.
-   - On object/array properties: unwrap if proxied; then **reuse** an existing proxy *for this observable* (via `targetToProxies`) or create a new one and extend the *path*.
-4. **Paths** are chains of `{target, property}` segments. `getPath()` returns a dotted path that recomputes array indices on access (via `indexOf`) so strings reflect post-mutation positions. An **RFC 6901 JSON Pointer** form is provided via `getPath(proxy, { jsonPointer: true })`. *(Example: dotted `todos.3.title` vs. pointer `/todos/3/title`.)*
+   - Returns bound methods for `Date` targets.
+   - On object/array properties: unwrap if proxied; then **reuse** an existing proxy *for this observable* or create a new one.
+   - **Lineage linking**: New proxies are initialized with a reference to their `parent` proxy and the `property` name, forming a reverse linked list.
+
+4. **Paths** are computed **lazily** by traversing the `parent` chain up to the root. `getPath()` walks this chain, recomputing array indices on the fly (via `indexOf`) so strings always reflect post-mutation positions.
 
 **Notification batching (`domDelay`)**
 
@@ -168,16 +170,16 @@ Let:
 ### At-a-glance
 
 | Operation            | Time                                   | Space                  | Notes |
-|---------------------|----------------------------------------|------------------------|-------|
-| **Create**          | **O(N)**                               | O(N) proxies, O(N) stack (transient) | Iterative DFS; each node touched once. |
-| **Set/Delete**      | **O(d)** path + **O(n)** index recompute (if array) + **O(m)** fan-out + **O(o)** notify | O(1) | Index recompute via `indexOf` only on array segments. |
-| **Cleanup enqueue** | **O(1)** amortized                     | O(1)                   | Insert into `pendingCleanups` map/set. |
-| **Cleanup flush**   | **O(k)** per orphaned component        | O(k) transient         | Iterative DFS with `WeakSet` (cycle-safe). |
+|----------------------|----------------------------------------|------------------------|-------|
+| **Create**           | **O(N)**                               | O(N) proxies           | Iterative DFS; **no path array copying** (linked list). |
+| **Set/Delete**       | **O(d)** path + **O(n)** index recompute + **O(m)** fan-out + **O(o)** notify | O(1) | Path string generated lazily by walking up `d` parents. |
+| **Cleanup enqueue**  | **O(1)** amortized                     | O(1)                   | Insert into `pendingCleanups` map/set. |
+| **Cleanup flush**    | **O(k)** per orphaned component        | O(k) transient         | Iterative DFS with `WeakSet` (cycle-safe). |
 
 ### Details
 
-- **Creation.** Iterative DFS triggers `get` to create/reuse nested proxies; brand/target tables updated per node.
-- **Set/Delete.** Record change, apply (unless writes paused), ensure tracking for assigned objects, fan-out to sibling proxies (`dupProxy` breaks cycles) and notify (sync or batched).
+- **Creation.** Iterative DFS triggers `get` to create/reuse nested proxies. Each new proxy stores a reference to its parent (linked list), ensuring **O(1)** allocation per node regardless of depth.
+- **Set/Delete.** Record change, apply, ensure tracking, fan-out, and notify. Path strings are generated on-demand by walking the parent chain.
 - **Cleanup.** `scheduleCleanup` coalesces work (idle/timeout). `graphContains(root, old)` prevents false positives; `cleanupOrphan` removes only this observable’s records. *(Rule of thumb: steady-state writes are O(1); work grows with path depth, number of sibling proxies, and number of observers.)*
 
 ---
@@ -211,6 +213,9 @@ Since engines update `length` before the `set` trap during array mutators, we re
 
 - **Observable lifetime.**  
   Call `ObservableSlim.remove(proxy)` to detach an observable and release its proxy records; APIs like `pause/resume` and `getParent/getPath` throw on removed/non-matching proxies.
+
+- **Lazy path generation.**  
+  Paths are not stored as arrays but calculated by walking up the parent chain. This ensures **O(N)** creation time for deep graphs (avoiding O(N²) memory/copy costs), but means `getPath()` is an **O(depth)** operation rather than an O(1) property access.
 
 ---
 
