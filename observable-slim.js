@@ -52,7 +52,7 @@ const ObservableSlim = (function() {
 	const S_PARENT   = Symbol('ObservableSlim.parent');
 	const S_PATH     = Symbol('ObservableSlim.path');
 
-	// Fast backreference: proxy -> { target, observable, path } (O(1) lookups)
+	// Fast backreference: proxy -> { target, observable, parent, property } (O(1) lookups)
 	const proxyToRecord = new WeakMap();
 
 	// Create a WeakMap for tracking Array lengths -- involved with determining what changes have occurred to an Array
@@ -213,6 +213,30 @@ const ObservableSlim = (function() {
 		cleanupOrphan(observable, oldObj);
 	}
 
+	/**
+	 * Returns a string of the nested path (in relation to the top-level observed object) of the property being modified or deleted.
+	 * @param {} target Plain object that we want to observe for changes.
+	 * @param {string|symbol} property Property name (or internal symbol used for introspection).
+	 * @param {} [jsonPointer] Set to `true` if the string path should be formatted as a JSON pointer rather than with the dot notation
+	 * (`false` as default).
+	 * @returns {} Nested path (e.g., `hello.testing.1.bar` or, if JSON pointer, `/hello/testing/1/bar`).
+	 */
+	const _getPath = function(target, property, jsonPointer) {
+		let fullPath = "";
+		let currTarget = target;
+		let currProperty = property;
+		
+		// We will traverse up the parent chain to build the path
+		const parts = [];
+		while (currTarget) {
+			const segment = (typeof currProperty === "symbol" && currProperty === S_PARENT) ? "__S_PARENT__" : String(currProperty);
+			const rec = targetToProxies.get(currTarget);
+			parts.push(segment);
+			break; 
+		}
+		return fullPath;
+	};
+
 	const _getProperty = function(obj, path) {
 		// If the path is empty/nullish, the "property at path" is the object itself.
 		if (path == null || path === "") return obj;
@@ -231,18 +255,16 @@ const ObservableSlim = (function() {
 	 * than zero, then it defines the DOM delay in milliseconds.
 	 * @param {object} [originalObservable] The original observable created by the user, exists for recursion purposes, allows one observable to observe
 	 * change on any nested/child objects.
-	 * @param {{target: object, property: string}[]} [originalPath] Array of objects, each object having the properties `target` and `property`:
-	 * `target` is referring to the observed object itself and `property` referring to the name of that object in the nested structure.
-	 * The path of the property in relation to the target on the original observable, exists for recursion purposes, allows one observable to observe
-	 * change on any nested/child objects.
+	 * @param {} [parentProxy] The parent proxy (used for linked-list path generation)
+	 * @param {} [parentProperty] The property name on the parent that leads to this target.
 	 * @returns {T} Proxy of the target object.
 	 */
-	const _create = function(target, domDelay, originalObservable, originalPath) {
+	const _create = function(target, domDelay, originalObservable, parentProxy, parentProperty) {
 
 		let observable = originalObservable || null;
 
-		// record the nested path taken to access this object -- if there was no path then we provide the first empty entry
-		const path = originalPath || [{"target":target,"property":""}];
+		// If this is the root, property is empty string.
+		const property = parentProperty || "";
 
 		// in order to accurately report the "previous value" of the "length" property on an Array
 		// we track lengths in a WeakMap. This is necessary because because intercepting a length change 
@@ -264,30 +286,45 @@ const ObservableSlim = (function() {
 		 */
 		const _getPath = function(target, property, jsonPointer) {
 
-			let fullPath = "";
-			let lastTarget = null;
+			const segments = [];
+			
+			// Add the current property to the chain
+			const lastSegment = (typeof property === "symbol" && property === S_PARENT) ? "__S_PARENT__" : String(property);
+			segments.push(lastSegment);
 
-			// loop over each item in the path and append it to full path
-			for (let i = 0; i < path.length; i++) {
+			// Walk up the linked list via 'proxy' closure variable which is the "current" proxy for 'target'
+			// Note: 'target' here is the object being mutated, which corresponds to the 'proxy' created in this scope.
+			let curr = proxy; 
+			
+			while (curr) {
+				const rec = proxyToRecord.get(curr);
+				if (!rec) break; // Should not happen if curr is a valid proxy
 
-				// if the current object was a member of an array, it's possible that the array was at one point
-				// mutated and would cause the position of the current object in that array to change. we perform an indexOf
-				// lookup here to determine the current position of that object in the array before we add it to fullPath
-				if (lastTarget instanceof Array && !isNaN(path[i].property)) {
-					path[i].property = lastTarget.indexOf(path[i].target);
-				}
+				const parent = rec.parent;
+				let part = rec.property;
 
-				fullPath = fullPath + "." + path[i].property
-				lastTarget = path[i].target;
-			}
+				// Array index recalculation:
+				// If the parent is an Array, we must determine the *current* index of the child (rec.target)
+				if (parent) {
+					const parentRec = proxyToRecord.get(parent);
+					if (parentRec && Array.isArray(parentRec.target)) {
+						// Re-calculate index based on the *real* target object identity
+						const idx = parentRec.target.indexOf(rec.target);
+						if (idx !== -1) part = String(idx);
+					}
+ 				}
 
-			// Add the current property
-			// Use a dot-free marker for the S_PARENT symbol so split(".") is safe.
-			const seg = (typeof property === "symbol" && property === S_PARENT) ? "__S_PARENT__" : String(property);
-			fullPath = fullPath + "." + seg;
+				
+				segments.push(part);
+				curr = parent;
+ 			}
 
-			// remove the beginning two dots -- ..foo.bar becomes foo.bar (the first item in the nested chain doesn't have a property name)
-			fullPath = fullPath.substring(2);
+			// The list is [prop, currentNodeProp, parentProp, rootProp] (reversed)
+			// Root prop is usually empty string "".
+			
+			// Filter empty strings (root) and join
+			let fullPath = segments.reverse().filter(s => s !== "").join(".");
+ 
 
 			if (jsonPointer === true) fullPath = "/" + fullPath.replace(/\./g, "/");
 
@@ -342,9 +379,12 @@ const ObservableSlim = (function() {
 				} else if (property === S_PARENT) {
 					return function(i) {
 						if (typeof i === "undefined") i = 1;
-						const parentPath = _getPath(target, S_PARENT).split(".");
-						parentPath.splice(-(i+1),(i+1));
-						return _getProperty(observable.parentProxy, parentPath.join("."));
+						let curr = proxy;
+						while(i-- && curr) {
+							const rec = proxyToRecord.get(curr);
+							curr = rec ? rec.parent : null;
+						}
+						return curr;
 					}
 				// return the full path of the current object relative to the parent observable
 				} else if (property === S_PATH) {
@@ -384,10 +424,8 @@ const ObservableSlim = (function() {
 					// if we're arrived here, then that means there is no proxy for the object the user just accessed, so we
 					// have to create a new proxy for it
 
-					// create a shallow copy of the path array -- if we didn't create a shallow copy then all nested objects would share the same path array and the path wouldn't be accurate
-					const newPath = path.slice(0);
-					newPath.push({"target":targetProp,"property":property});
-					return _create(targetProp, domDelay, observable, newPath);
+					// Pass the current proxy as the parent, and the property name
+					return _create(targetProp, domDelay, observable, proxy, property);
 				} else {
 					return targetProp;
 				}
@@ -567,17 +605,17 @@ const ObservableSlim = (function() {
 		const proxy = new Proxy(target, handler);
 
 		// Brand this proxy and keep a fast backreference for symbol helpers and static methods
-		proxyToRecord.set(proxy, { target, observable, path });
+		proxyToRecord.set(proxy, { target, observable, parent: parentProxy, property: property });
 
 		// we don't want to create a new observable if this function was invoked recursively
 		if (observable === null) {
-			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false,"path":path,"changesPaused":false,"proxyRefs":[]};
+			observable = {"parentTarget":target, "domDelay":domDelay, "parentProxy":proxy, "observers":[],"paused":false, "changesPaused":false,"proxyRefs":[]};
 			observables.push(observable);
 		}
 
 		// Update the brand backreference now that the observable is known (root case).
 		// This enables O(1) control APIs (pause/resume/etc.) to find the owning observable via proxyToRecord.
-		proxyToRecord.set(proxy, { target, observable, path });
+		proxyToRecord.set(proxy, { target, observable, parent: parentProxy, property: property });
 
 		// store the proxy we've created so it isn't re-created unnecessarily via get handler
 		const proxyItem = {"target":target,"proxy":proxy,"observable":observable};
