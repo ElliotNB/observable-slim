@@ -24,7 +24,7 @@ https://github.com/elliotnb/observable-slim
 
 ## Design (Deep Dive)
 
-Curious about the underlying architecture and implementation? See **[docs/design.md](docs/design.md)** for the problem model, core algorithms, complexity, invariants, cycle-safe instrumentation, cross-proxy fan-out, reachability-based teardown, and correctness arguments. It's optional reading, but helpful if you want to understand how the internals stay fast and memory-safe.
+Curious about the underlying architecture and implementation? See **[docs/design.md](docs/design.md)** for the problem model, core algorithms, complexity, invariants, cycle-safe instrumentation, cross-proxy fan-out, reachability-based teardown, and correctness arguments. Optional reading, but helpful if you want to understand how the internals stay fast and memory-safe. For validation of scaling/time complexity performance, please see **[bench/results.md](bench/results.md)** for the most recent benchmarking run.
 
 ## Features
 
