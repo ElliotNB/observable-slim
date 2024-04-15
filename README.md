@@ -6,7 +6,7 @@ https://github.com/elliotnb/observable-slim
 
 *A small, dependency-free library that watches deep changes in plain JavaScript objects/arrays and tells you exactly what changed.*
 
-> Observable Slim mirrors JavaScript objects and arrays using ES2015 Proxy, letting you observe deeply nested changes with clear notifications using dotted paths and RFC-6901 JSON Pointers. It safely handles circular references, ensures fast O(1) performance through WeakMap/WeakSet identity tables, and keeps paths accurate even when arrays reorder. You can send updates immediately or batch them for smoother UI rendering. It also efficiently manages proxies, lets you pause or validate updates, and cleans up memory safely when data is removed. Lightweight (~6 KB minified), dependency-free, and memory-safe, it's well-suited for UI data binding, state management, audit trails, debugging tools, telemetry/profiling, or collaborative editing using CRDT or OT algorithms.
+Observable Slim mirrors JavaScript objects and arrays using ES2015 Proxy, letting you observe deeply nested changes with clear notifications using dotted paths and RFC-6901 JSON Pointers. Engineered for performance, it features **linear O(N) initialization** and lazy path generation, allowing it to scale efficiently even on deep state trees. It safely handles circular references, ensures fast **O(1) lookups** via WeakMap identity tables, and keeps paths accurate even when arrays reorder. You can batch updates for smoother UI rendering, pause/resume observers, and rely on automatic garbage collection for removed data. Lightweight (~6 KB minified), dependency-free, and memory-safe.
 
 ## Table of Contents
 
@@ -24,11 +24,12 @@ https://github.com/elliotnb/observable-slim
 
 ## Design (Deep Dive)
 
-Curious about the underlying architecture and implementation? See **[docs/design.md](docs/design.md)** for the problem model, core algorithms, complexity, invariants, cycle-safe instrumentation, cross-proxy fan-out, reachability-based teardown, and correctness arguments. Optional reading, but helpful if you want to understand how the internals stay fast and memory-safe. For validation of scaling/time complexity performance, please see **[bench/results.md](bench/results.md)** for the most recent benchmarking run.
+Curious about the underlying architecture and implementation? See **[docs/design.md](docs/design.md)** for the problem model, core algorithms, complexity, invariants, cycle-safe instrumentation, cross-proxy fan-out, lazy path generation (linked-list lineage), reachability-based teardown, and correctness arguments. It's optional reading, but helpful if you want to understand how the internals stay fast and memory-safe. For validation of scaling/time complexity performance, please see **[bench/results.md](bench/results.md)** for the most recent benchmarking run.
 
 ## Features
 
 - **Deep observation** of objects and arrays (all nested children)
+- **High performance creation** with **O(N) linear scaling**, suitable for deeply nested state trees.
 - **Structured change records** with: `type`, `property`, `currentPath` (dot notation), `jsonPointer` (RFC6901), `previousValue`, `newValue`, `target`, `proxy`
 - **Batched notifications** with `domDelay` (boolean or ms number)
 - **Multiple proxies per target** with safe cross-proxy propagation

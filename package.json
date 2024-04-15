@@ -33,7 +33,8 @@
     "build:types": "tsc -p tsconfig.json",
     "build": "npm run build:js && npm run build:types",
     "prepublishOnly": "npm run build",
-    "type": "npx -p typescript tsc"
+    "type": "npx -p typescript tsc",
+    "bench": "node bench/index.js --expose-gc"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
