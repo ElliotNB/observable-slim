@@ -1,9 +1,16 @@
-// Type by StackOverflow user jcakz
-// https://stackoverflow.com/a/58436959/10843516
-type Paths<T> = T extends object
-    ? {
-          [K in keyof T]: `${Exclude<K, symbol>}${"" | `.${Paths<T[K]>}`}`;
-      }[keyof T]
+// Type by StackOverflow user mindlid and 0x6368656174, modified by XDGFX
+// https://stackoverflow.com/a/68404823/10843516
+type DotPrefix<T extends string> = T extends "" ? "" : `.${T}`;
+type Paths<T> = (
+    T extends object
+        ? {
+              [K in Exclude<keyof T, symbol>]: `${K}${
+                  | DotPrefix<Paths<T[K]>>
+                  | K}`;
+          }[Exclude<keyof T, symbol>]
+        : ""
+) extends infer D
+    ? Extract<D, string>
     : never;
 
 type PathToJSONPointer<S> = S extends string
@@ -50,11 +57,11 @@ export interface Mutation<Source extends object, CurrentPath = Paths<Source>> {
     /**
      * New value of the property.
      */
-    newValue: Source;
+    newValue: any;
     /**
      * Previous value of the property
      */
-    previousValue?: Source;
+    previousValue?: any;
 }
 
 export function create<Source extends object>(
