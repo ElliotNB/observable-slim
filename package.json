@@ -25,8 +25,7 @@
     "lint": "eslint \"**/*.js\"",
     "lint:fix": "eslint \"**/*.js\" --fix",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
-    "build": "gulp",
-    "type": "npx -p typescript tsc"
+    "build": "gulp"
   },
   "babel": {
     "presets": [
