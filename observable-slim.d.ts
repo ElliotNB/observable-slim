@@ -6,7 +6,7 @@ type Paths<T> = (
         ? {
               [K in Exclude<keyof T, symbol>]: `${K}${
                   | DotPrefix<Paths<T[K]>>
-                  | K}`;
+                  | ""}`;
           }[Exclude<keyof T, symbol>]
         : ""
 ) extends infer D
