@@ -11,7 +11,7 @@ type Paths<T> = (
         : ""
 ) extends infer D
     ? Extract<D, string>
-    : never;
+    : string;
 
 type PathToJSONPointer<S> = S extends string
     ? S extends `${infer T}.${infer U}`
