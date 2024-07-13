@@ -51,9 +51,10 @@ var ObservableSlim = (function() {
 	 * change on any nested/child objects.
 	 * @returns {ProxyConstructor} Proxy of the target object.
 	 */
-	var _create = function(target, domDelay, originalObservable, originalPath) {
+	var _create = function(target, domDelay, originalObservable, originalPath, validator_fn) {
 
 		var observable = originalObservable || null;
+		var validator = validator_fn || null;
 
 		// record the nested path taken to access this object -- if there was no path then we provide the first empty entry
 		var path = originalPath || [{"target":target,"property":""}];
@@ -205,7 +206,7 @@ var ObservableSlim = (function() {
 					// create a shallow copy of the path array -- if we didn't create a shallow copy then all nested objects would share the same path array and the path wouldn't be accurate
 					var newPath = path.slice(0);
 					newPath.push({"target":targetProp,"property":property});
-					return _create(targetProp, domDelay, observable, newPath);
+					return _create(targetProp, domDelay, observable, newPath, validator);
 				} else {
 					return targetProp;
 				}
@@ -310,6 +311,13 @@ var ObservableSlim = (function() {
 						,"jsonPointer":_getPath(target, property, true)
 						,"proxy":proxy
 					});
+
+					if(validator != null && validator instanceof Function){
+						if(!validator(changes)){     
+							changes = [];
+							return;
+						}
+					}
 
 					// mutations of arrays via .push or .splice actually modify the .length before the set handler is invoked
 					// so in order to accurately report the correct previousValue for the .length, we have to use a helper property.
@@ -550,7 +558,7 @@ var ObservableSlim = (function() {
 		 * When invoked, this function is passed a single argument: an array of `ObservableSlimChange` detailing each change that has been made.
 		 * @returns {ProxyConstructor} Proxy of the target object.
 		 */
-		create: function(target, domDelay, observer) {
+		create: function(target, domDelay, observer, validator) {
 
 			// test if the target is a Proxy, if it is then we need to retrieve the original object behind the Proxy.
 			// we do not allow creating proxies of proxies because -- given the recursive design of ObservableSlim -- it would lead to sharp increases in memory usage
@@ -562,7 +570,7 @@ var ObservableSlim = (function() {
 			}
 
 			// fire off the _create() method -- it will create a new observable and proxy and return the proxy
-			var proxy = _create(target, domDelay);
+			var proxy = _create(target, domDelay, null, null, validator);
 
 			// assign the observer function
 			if (typeof observer === "function") this.observe(proxy, observer);
