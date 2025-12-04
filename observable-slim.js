@@ -1,6 +1,6 @@
 /*
  * 	Observable Slim
- *	Version 0.2.1
+ *	Version 0.2.2
  * 	https://github.com/elliotnb/observable-slim
  *
  * 	Licensed under the MIT license:
