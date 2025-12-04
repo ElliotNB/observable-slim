@@ -19,7 +19,7 @@
   "sideEffects": false,
   "files": ["dist", "LICENSE", "README.md"],
   "scripts": {
-    "test": "nyc --reporter=html --reporter=text mocha \"test/test.js\"",
+    "test": "nyc --reporter=lcov --reporter=html --reporter=text mocha \"test/test.js\"",
     "test:types": "tsc -p tsconfig.types.json",
     "test:rt:cjs": "node test/cjs.entry.test.cjs && node test/cjs.direct.test.cjs",
     "test:rt:esm": "node test/esm.entry.test.mjs && node test/esm.direct.test.mjs",
