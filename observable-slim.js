@@ -411,6 +411,7 @@ const ObservableSlim = (function() {
 				changes.push({
 					"type":"delete"
 					,"target":target
+					,"parent":path.map(o => o.property).slice(1)
 					,"property":property
 					,"newValue":null
 					,"previousValue":target[property]
@@ -486,6 +487,7 @@ const ObservableSlim = (function() {
 					changes.push({
 						"type":type
 						,"target":target
+						,"parent":path.map(o => o.property).slice(1)
 						,"property":property
 						,"newValue":value
 						,"previousValue":receiver[property]
